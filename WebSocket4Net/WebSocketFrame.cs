@@ -9,7 +9,6 @@ namespace WebSocket4Net
 {
     public class WebSocketFrame : IWebSocketFrame
     {
-        private readonly int _lengthToProcess;
         private readonly IList<WebSocketDataFrame> _dataFrames;
 
         public WebSocketFrame()
@@ -31,41 +30,38 @@ namespace WebSocket4Net
         /// <summary>
         /// Initializes a new instance of the <see cref="WebSocketFrame" /> class.
         /// </summary>
-        /// <param name="lengthToProcess">The length to process.</param>
         /// <param name="dataFrame">The frames.</param>
-        public WebSocketFrame(int lengthToProcess, params WebSocketDataFrame[] dataFrame)
-           : this(lengthToProcess, (IList<WebSocketDataFrame>)dataFrame)
+        public WebSocketFrame(params WebSocketDataFrame[] dataFrame)
+           : this((IList<WebSocketDataFrame>)dataFrame)
         {
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WebSocketFrame" /> class.
         /// </summary>
-        /// <param name="lengthToProcess">The length to process.</param>
         /// <param name="dataFrames">The frames.</param>
-        public WebSocketFrame(int lengthToProcess, IList<WebSocketDataFrame> dataFrames)
+        public WebSocketFrame(IList<WebSocketDataFrame> dataFrames)
         {
             if (dataFrames == null) throw new ArgumentNullException(nameof(dataFrames));
-            _lengthToProcess = lengthToProcess;
             _dataFrames = dataFrames;
         }
 
         public WebSocketDataFrame FirstDataFrames => _dataFrames?[0];
         public IList<WebSocketDataFrame> DataFrames => _dataFrames;
 
-        public void Decode()
+        public void Decode(int lengthExcluded)
         {
             if (_dataFrames == null) return;
-            Decode(_lengthToProcess, _dataFrames);
+            Decode(_dataFrames, lengthExcluded);
         }
 
-        private void Decode(int lengthToProcess, IList<WebSocketDataFrame> dataFrames)
+        private void Decode(IList<WebSocketDataFrame> dataFrames, int lengthExcluded)
         {
             var firstFrame = dataFrames[0];
             var opCode = firstFrame.OpCode;
             Key = opCode.ToString();
             var length = firstFrame.ActualPayloadLength;
-            var offset = firstFrame.ArrayView.Length - (lengthToProcess < 0 ? 0 : lengthToProcess) - length;
+            var offset = firstFrame.ArrayView.Length - length - (lengthExcluded < 0 ? 0 : lengthExcluded);
 
             if (opCode == OpCode.Close)
             {

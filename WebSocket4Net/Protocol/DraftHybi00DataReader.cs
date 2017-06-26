@@ -20,9 +20,9 @@ namespace WebSocket4Net.Protocol
         {
         }
 
-        public override ArrayChunk<byte> AddSegment(ArrayChunk<byte> segment) => AddSegment(segment.Array, segment.Offset, segment.Length, false);
+        public override ArrayChunk<byte> AddChunk(ArrayChunk<byte> segment) => AddChunk(segment.Array, segment.Offset, segment.Length, false);
 
-        public override ArrayChunk<byte> AddSegment(byte[] readBuffer, int offset, int length, bool copy)
+        public override ArrayChunk<byte> AddChunk(byte[] readBuffer, int offset, int length, bool copy)
         {
             _webSocketFrameEx = BuildWebSocketFrameEx(readBuffer, offset, length);
             var segments = ArrayView.Chunks;
@@ -36,12 +36,12 @@ namespace WebSocket4Net.Protocol
             return _webSocketFrameEx.Frame != null;
         }
 
-        public override WebSocketFrame BuildWebSocketFrame(int lengthToProcess)
+        public override WebSocketFrame BuildWebSocketFrame()
         {
             return _webSocketFrameEx.Frame;
         }
 
-        public override void ResetWebSocketFrame()
+        public override void ResetDataFrame()
         {
             
         }
@@ -108,7 +108,7 @@ namespace WebSocket4Net.Protocol
                     }
                 }
 
-                AddSegment(readBuffer, offset + skipByteCount, length - skipByteCount, true);
+                AddChunk(readBuffer, offset + skipByteCount, length - skipByteCount, true);
                 return new WebSocketFrameEx(left);
             }
 
@@ -147,7 +147,7 @@ namespace WebSocket4Net.Protocol
 
             if (leftSize < requiredSize)
             {
-                AddSegment(readBuffer, skipByteCount, length - skipByteCount, true);
+                AddChunk(readBuffer, skipByteCount, length - skipByteCount, true);
                 return new WebSocketFrameEx(left);
             }
 

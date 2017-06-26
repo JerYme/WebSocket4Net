@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Reflection;
+using System.Security.Authentication;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -41,10 +43,49 @@ namespace WebSocket4Net.Test
 
         }
 
-        protected override string Host
+        protected override string Host => "wss://127.0.0.1";
+
+        [Test]
+        public void TestWebSocketOrg()
         {
-            get { return "wss://127.0.0.1"; }
+            WebSocket webSocketClient = new WebSocket("wss://echo.websocket.org", httpConnectProxy: new IPEndPoint(new IPAddress(new byte[] { 10, 96, 30, 38 }), 8080),sslProtocols: SslProtocols.Tls, version: WebSocketVersion.Rfc6455);
+            webSocketClient.Error += new EventHandler<SuperSocket.ClientEngine.ErrorEventArgs>(webSocketClient_Error);
+
+            ConfigSecurity(webSocketClient);
+
+            webSocketClient.Closed += new EventHandler(webSocketClient_Closed);
+            webSocketClient.MessageReceived += new EventHandler<MessageReceivedEventArgs>(webSocketClient_MessageReceived);
+            webSocketClient.Open();
+
+            if (!m_OpenedEvent.WaitOne(5000 * 2))
+                Assert.Fail("Failed to Opened session ontime");
+
+            Assert.AreEqual(WebSocketState.Open, webSocketClient.State);
+
+            for (var i = 0; i < 10; i++)
+            {
+                var message = Guid.NewGuid().ToString();
+
+                webSocketClient.Send(message);
+
+                if (!m_MessageReceiveEvent.WaitOne(5000))
+                {
+                    Assert.Fail("Failed to get echo messsage on time");
+                    break;
+                }
+
+                Console.WriteLine("Received echo message: {0}", m_CurrentMessage);
+                Assert.AreEqual(m_CurrentMessage, message);
+            }
+
+            webSocketClient.Close();
+
+            if (!m_CloseEvent.WaitOne(5000))
+                Assert.Fail("Failed to close session ontime");
+
+            Assert.AreEqual(WebSocketState.Closed, webSocketClient.State);
         }
+
     }
 
     [TestFixture]
@@ -69,7 +110,7 @@ namespace WebSocket4Net.Test
         [Test]
         public void TestWebSocketOrg()
         {
-            WebSocket webSocketClient = new WebSocket("ws://echo.websocket.org/");
+            WebSocket webSocketClient = new WebSocket("ws://echo.websocket.org", httpConnectProxy: new IPEndPoint(new IPAddress(new byte[] { 10, 96, 30, 38 }), 8080));
             webSocketClient.Error += new EventHandler<SuperSocket.ClientEngine.ErrorEventArgs>(webSocketClient_Error);
 
             ConfigSecurity(webSocketClient);
@@ -130,7 +171,7 @@ namespace WebSocket4Net.Test
         protected WebSocketClientTest(WebSocketVersion version)
             : this(version, string.Empty, string.Empty, string.Empty)
         {
-            
+
         }
 
         protected WebSocketClientTest(WebSocketVersion version, string security, string certificateFile, string password)
@@ -246,7 +287,7 @@ namespace WebSocket4Net.Test
             webSocketClient.Closed += new EventHandler(webSocketClient_Closed);
             webSocketClient.MessageReceived += new EventHandler<MessageReceivedEventArgs>(webSocketClient_MessageReceived);
 
-            for (var i = 0; i <2000; i++)
+            for (var i = 0; i < 2000; i++)
             {
                 webSocketClient.Open();
 
@@ -575,7 +616,7 @@ namespace WebSocket4Net.Test
 
             webSocketClient.Opened += new EventHandler(webSocketClient_Opened);
             webSocketClient.Closed += new EventHandler(webSocketClient_Closed);
-            
+
             webSocketClient.Open();
 
             if (!m_OpenedEvent.WaitOne(2000))

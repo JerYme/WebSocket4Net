@@ -113,7 +113,7 @@ namespace WebSocket4Net.Protocol
 
         public override HandshakeReaderBase CreateHandshakeReader(WebSocket websocket) => new DraftHybi10HandshakeReader(websocket);
 
-        public override DataReaderBase CreateDataReader(WebSocket websocket, HandshakeReaderBase handshakeReaderBase) => new DraftHybi10DataReader(websocket, handshakeReaderBase.ArrayView);
+        public override DataReaderBase CreateDataReader(WebSocket websocket, HandshakeReaderBase handshakeReaderBase) => new DraftHybi10DataReader(websocket, handshakeReaderBase?.ArrayView);
 
         private void SendMessage(WebSocket websocket, int opCode, string message)
         {

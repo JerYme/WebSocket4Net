@@ -101,7 +101,7 @@ namespace WebSocket4Net.Common
             }
         }
 
-        private static ArrayChunk<T> Match(ArrayChunk<T> chunk, int index) => chunk.StartIndex >= index && chunk.EndIndex <= index ? chunk : null;
+        private static ArrayChunk<T> Match(ArrayChunk<T> chunk, int index) => chunk.StartIndex <= index && index <= chunk.EndIndex ? chunk : null;
 
         public void CopyTo(T[] array, int arrayIndex) => CopyTo(array, 0, arrayIndex, Math.Min(array.Length, Length - arrayIndex));
 

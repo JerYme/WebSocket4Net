@@ -50,19 +50,19 @@ namespace WebSocket4Net.Protocol
             //if (lengthToProcess > 0) _dataFrame.Segments.TrimEnd(lengthToProcess);
         }
 
-        public override void ResetWebSocketFrame()
+        public override void ResetDataFrame()
         {
             _dataFrame = new WebSocketDataFrame(new ArrayView<byte>());
             _frameIndex = 0;
             _frameReader = FrameReader.FrameReader.Root;
         }
 
-        public override WebSocketFrame BuildWebSocketFrame(int lengthToProcess)
+        public override WebSocketFrame BuildWebSocketFrame()
         {
             // Control frames MAY be injected in the middle of
             // a fragmented message.Control frames themselves MUST NOT be
             // fragmented.
-            if (_dataFrame.IsControlFrame) return new WebSocketFrame(lengthToProcess, _dataFrame);
+            if (_dataFrame.IsControlFrame) return new WebSocketFrame(_dataFrame);
 
             if (!_dataFrame.FIN) // https://tools.ietf.org/html/rfc6455#section-5.4
             {
@@ -72,12 +72,6 @@ namespace WebSocket4Net.Protocol
                     _fragmentedDataFrames.Add(_dataFrame);
                     return null;
                 }
-                //if (_fragmentedDataFrames != null)
-                //{
-                //    _fragmentedDataFrames.Add(_dataFrame);
-                //    _dataFrame = new WebSocketDataFrame(new ArraySegmentList<byte>());
-                //    return null;
-                //}
 
                 // initiated
                 Debug.Assert(_fragmentedDataFrames == null);
@@ -89,12 +83,12 @@ namespace WebSocket4Net.Protocol
             {
                 Debug.Assert(_fragmentedDataFrames != null);
                 _fragmentedDataFrames.Add(_dataFrame);
-                var frame = new WebSocketFrame(lengthToProcess, _fragmentedDataFrames);
+                var frame = new WebSocketFrame(_fragmentedDataFrames);
                 _fragmentedDataFrames = null;
                 return frame;
             }
 
-            return new WebSocketFrame(lengthToProcess, _dataFrame);
+            return new WebSocketFrame(_dataFrame);
         }
 
         public override void Clear()

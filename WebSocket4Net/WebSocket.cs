@@ -6,7 +6,6 @@ using SuperSocket.ClientEngine;
 using WebSocket4Net.Command;
 using WebSocket4Net.Common;
 using WebSocket4Net.Protocol;
-using WebSocket4Net.Protocol.FrameReader;
 
 namespace WebSocket4Net
 {
@@ -16,7 +15,6 @@ namespace WebSocket4Net
 
         private EndPoint _remoteEndPoint;
         private EventHandler<ErrorEventArgs> _error;
-        private bool? _skipData;
         private EndPoint _httpConnectProxy;
         private readonly Dictionary<string, ICommand<WebSocket, WebSocketFrame>> _commandDict = new Dictionary<string, ICommand<WebSocket, WebSocketFrame>>(StringComparer.OrdinalIgnoreCase);
         private int _stateCode;
@@ -100,8 +98,6 @@ namespace WebSocket4Net
         private const int _securePort = 443;
 
         private const string _secureUriPrefix = _secureUriScheme + "://";
-
-        private bool _isHandShaked;
         internal string HandshakeHost { get; private set; }
 
         internal string Origin { get; private set; }
@@ -400,6 +396,7 @@ namespace WebSocket4Net
         void OnConnected()
         {
             HandshakeReader = ProtocolProcessor.CreateHandshakeReader(this);
+            DataReader = null;
 
             if (Items.Count > 0)
                 Items.Clear();
@@ -602,52 +599,39 @@ namespace WebSocket4Net
             var ah = new ArrayHolder<byte>(data);
             while (true)
             {
-                int lengthToProcess;
+                int lengthToProcess = 0;
                 bool executed = false;
                 bool processed = false;
-                if (!_isHandShaked)
+
+                var handshakeReader = HandshakeReader;
+                ArrayView<byte> arrayView = null;
+
+                if (handshakeReader != null)
                 {
                     bool success;
-                    var handShakeFrame = HandshakeReader.BuildHandShakeFrame(data, offset, length, out lengthToProcess, out success);
+                    var handShakeFrame = handshakeReader.BuildHandShakeFrame(data, offset, length, out lengthToProcess, out success);
+                    arrayView = handshakeReader.ArrayView;
                     executed = ExecuteCommand(handShakeFrame);
 
                     if (success)
                     {
-                        DataReader = ProtocolProcessor.CreateDataReader(this, HandshakeReader);
-                        _isHandShaked = true;
+                        HandshakeReader = null;
+                        DataReader = ProtocolProcessor.CreateDataReader(this, null);
+                        if (lengthToProcess <= 0) break;
+
+                        offset = offset + length - lengthToProcess;
+                        length = lengthToProcess;
                     }
                 }
-                else
-                {
-                    var arraySegmentEx = ArrayChunk<byte>.New(_skipData == true ? null : ah, offset, length, DataReader.ArrayView.Length);
-                    var addSegment = DataReader.AddSegment(arraySegmentEx);
-                    if (addSegment != null && _skipData == null && DataReader.ArrayView.Length >= 10)
-                    {
-                        var fr = new WebSocketDataFrame(DataReader.ArrayView);
-                        var actualPayloadLength = fr.ActualPayloadLength;
-                        if (actualPayloadLength > 1024 * 1024 * 25)
-                        {
-                            _skipData = true;
-                            //DataReader.SegmentList.ClearBuffers();
-                        }
-                    }
 
-                    processed = DataReader.Process(out lengthToProcess);
-                    if (processed)
-                    {
-                        //if (_skipData == true)
-                        //{
-                        //    DataReader.ResetWebSocketFrame();
-                        //}
-                        //else
-                        {
-                            var webSocketFrame = DataReader.BuildWebSocketFrame(lengthToProcess);
-                            if (_skipData != true) webSocketFrame.Decode();
-                            DataReader.ResetWebSocketFrame();
-                            executed = ExecuteCommand(webSocketFrame);
-                        }
-                        _skipData = null;
-                    }
+                var dataReader = DataReader;
+                if (dataReader != null)
+                {
+                    var frame = dataReader.TryBuildWebSocketFrame(ah, offset, length);
+                    arrayView = dataReader.ArrayView;
+                    processed = frame;
+                    executed = ExecuteCommand(frame);
+                    lengthToProcess = frame;
                 }
 
 
@@ -661,7 +645,7 @@ namespace WebSocket4Net
 
                 if (lengthToProcess > 0 && !processed)
                 {
-                    DataReader.ArrayView.TrimEnd(lengthToProcess);
+                    arrayView?.TrimEnd(lengthToProcess);
                 }
 
                 offset = offset + length - lengthToProcess;

@@ -5,6 +5,7 @@
         ProcessFrame Process(int frameIndex, WebSocketDataFrame frame);
     }
 
+
     public struct ProcessFrame
     {
         private readonly bool _success;

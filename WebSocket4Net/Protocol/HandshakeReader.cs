@@ -56,7 +56,7 @@ namespace WebSocket4Net.Protocol
                 // We've not found the HeaderTerminator yet.  We'll be
                 // called again when more data arrives.  --
                 // fidergo-stephane-gourichon
-                AddSegment(readBuffer, offset, length, true);
+                AddChunk(readBuffer, offset, length, true);
                 success = false;
                 return null;
             }
@@ -81,7 +81,7 @@ namespace WebSocket4Net.Protocol
                     // (excluding `HeaderTerminator`).  So, we add
                     // those bytes and extract the handshake.
 
-                    AddSegment(readBuffer, offset, findLen, true);
+                    AddChunk(readBuffer, offset, findLen, true);
                     handshake = ArrayView.Decode(Encoding.UTF8, 0, ArrayView.Length);
 
                     // Now, we need to correct `prevMatched`.  Indeed,
