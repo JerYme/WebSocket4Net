@@ -7,7 +7,7 @@ namespace WebSocket4Net.Command
 {
     public class Close : WebSocketCommandBase
     {
-        public override void ExecuteCommand(WebSocket session, WebSocketCommandInfo commandInfo)
+        public override void ExecuteCommand(WebSocket session, WebSocketFrame frame)
         {
             //Close handshake was sent from client side, now got a handshake response
             if (session.StateCode == WebSocketStateConst.Closing)
@@ -17,12 +17,12 @@ namespace WebSocket4Net.Command
             }
 
             //Got server side closing handshake request, send response now
-            var statusCode = commandInfo.CloseStatusCode;
+            var statusCode = frame.CloseStatusCode;
 
             if (statusCode <= 0)
                 statusCode = session.ProtocolProcessor.CloseStatusCode.NoStatusCode;
 
-            session.Close(statusCode, commandInfo.Text);
+            session.Close(statusCode, frame.Text);
         }
 
         public override string Name

@@ -1,112 +1,108 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
+using System.Diagnostics;
 using WebSocket4Net.Common;
-using WebSocket4Net.Protocol.FramePartReader;
+using WebSocket4Net.Protocol.FrameReader;
 
 namespace WebSocket4Net.Protocol
 {
-    class DraftHybi10DataReader : IClientCommandReader<WebSocketCommandInfo>
+    sealed class DraftHybi10DataReader : DataReaderBase
     {
-        public DraftHybi10DataReader()
+        public DraftHybi10DataReader(WebSocket websocket, ArrayView<byte> arrayView) : base(websocket, arrayView)
         {
-            m_Frame = new WebSocketDataFrame(new ArraySegmentList());
-            m_PartReader = DataFramePartReader.NewReader;
+            _dataFrame = new WebSocketDataFrame(base.ArrayView);
+            _frameReader = FrameReader.FrameReader.Root;
         }
 
-        private List<WebSocketDataFrame> m_PreviousFrames;
-        private WebSocketDataFrame m_Frame;
-        private IDataFramePartReader m_PartReader;
-        private int m_LastPartLength = 0;
 
-        public int LeftBufferSize
+        private List<WebSocketDataFrame> _fragmentedDataFrames;
+        private WebSocketDataFrame _dataFrame;
+        private IFrameReader _frameReader;
+        private int _frameIndex;
+
+        public int SegmentsLength => _dataFrame.ArrayView.Length;
+
+        public override ArrayView<byte> ArrayView => _dataFrame.ArrayView;
+
+        public override bool Process(out int lengthToProcess)
         {
-            get { return m_Frame.InnerData.Count; }
-        }
+            var processFrame = _frameReader.Process(_frameIndex, _dataFrame);
 
-        public IClientCommandReader<WebSocketCommandInfo> NextCommandReader
-        {
-            get { return this; }
-        }
+            lengthToProcess = processFrame.LengthToProcess;
+            var reader = processFrame.Reader;
 
-        protected void AddArraySegment(ArraySegmentList segments, byte[] buffer, int offset, int length, bool isReusableBuffer)
-        {
-            segments.AddSegment(buffer, offset, length, isReusableBuffer);
-        }
-
-        public WebSocketCommandInfo GetCommandInfo(byte[] readBuffer, int offset, int length, out int left)
-        {
-            this.AddArraySegment(m_Frame.InnerData, readBuffer, offset, length, true);
-
-            IDataFramePartReader nextPartReader;
-
-            int thisLength = m_PartReader.Process(m_LastPartLength, m_Frame, out nextPartReader);
-
-            if (thisLength < 0)
+            if (reader != null)
             {
-                left = 0;
-                return null;
+                _frameReader = reader;
+                _frameIndex = processFrame.FrameIndex;
             }
-            else
+
+            if (!processFrame && reader == null)
             {
-                left = thisLength;
 
-                if (left > 0)
-                    m_Frame.InnerData.TrimEnd(left);
+            }
 
-                //Means this part reader is the last one
-                if (nextPartReader == null)
+            return processFrame;
+            //if (nextFrameReader == null) return success;
+
+            //_frameIndex = _dataFrame.Segments.SegmentsLength - lengthToProcess;
+            //if (!success && lengthToProcess > 0) _dataFrame.Segments.TrimEnd(lengthToProcess);
+            //return success;
+            //if (lengthToProcess > 0) _dataFrame.Segments.TrimEnd(lengthToProcess);
+        }
+
+        public override void ResetWebSocketFrame()
+        {
+            _dataFrame = new WebSocketDataFrame(new ArrayView<byte>());
+            _frameIndex = 0;
+            _frameReader = FrameReader.FrameReader.Root;
+        }
+
+        public override WebSocketFrame BuildWebSocketFrame(int lengthToProcess)
+        {
+            // Control frames MAY be injected in the middle of
+            // a fragmented message.Control frames themselves MUST NOT be
+            // fragmented.
+            if (_dataFrame.IsControlFrame) return new WebSocketFrame(lengthToProcess, _dataFrame);
+
+            if (!_dataFrame.FIN) // https://tools.ietf.org/html/rfc6455#section-5.4
+            {
+                if (_dataFrame.OpCode == OpCode.Fragmented) // fragmented continued...
                 {
-                    WebSocketCommandInfo commandInfo;
-
-                    // Control frames MAY be injected in the middle of
-                    // a fragmented message.Control frames themselves MUST NOT be
-                    // fragmented.
-                    if (m_Frame.IsControlFrame)
-                    {
-                        commandInfo = new WebSocketCommandInfo(m_Frame);
-                        m_Frame.Clear();
-                    }
-                    else if (m_Frame.FIN)
-                    {
-                        if (m_PreviousFrames != null && m_PreviousFrames.Count > 0)
-                        {
-                            m_PreviousFrames.Add(m_Frame);
-                            m_Frame = new WebSocketDataFrame(new ArraySegmentList());
-                            commandInfo = new WebSocketCommandInfo(m_PreviousFrames);
-                            m_PreviousFrames = null;
-                        }
-                        else
-                        {
-                            commandInfo = new WebSocketCommandInfo(m_Frame);
-                            m_Frame.Clear();
-                        }
-                    }
-                    else
-                    {
-                        if (m_PreviousFrames == null)
-                            m_PreviousFrames = new List<WebSocketDataFrame>();
-
-                        m_PreviousFrames.Add(m_Frame);
-                        m_Frame = new WebSocketDataFrame(new ArraySegmentList());
-
-                        commandInfo = null;
-                    }
-
-                    //BufferSegments.ClearSegements();
-                    m_LastPartLength = 0;
-                    m_PartReader = DataFramePartReader.NewReader;
-
-                    return commandInfo;
-                }
-                else
-                {
-                    m_LastPartLength = m_Frame.InnerData.Count - thisLength;
-                    m_PartReader = nextPartReader;
-
+                    Debug.Assert(_fragmentedDataFrames != null);
+                    _fragmentedDataFrames.Add(_dataFrame);
                     return null;
                 }
+                //if (_fragmentedDataFrames != null)
+                //{
+                //    _fragmentedDataFrames.Add(_dataFrame);
+                //    _dataFrame = new WebSocketDataFrame(new ArraySegmentList<byte>());
+                //    return null;
+                //}
+
+                // initiated
+                Debug.Assert(_fragmentedDataFrames == null);
+                _fragmentedDataFrames = new List<WebSocketDataFrame> { _dataFrame };
+                return null;
             }
+
+            if (_dataFrame.OpCode == OpCode.Fragmented) // terminated
+            {
+                Debug.Assert(_fragmentedDataFrames != null);
+                _fragmentedDataFrames.Add(_dataFrame);
+                var frame = new WebSocketFrame(lengthToProcess, _fragmentedDataFrames);
+                _fragmentedDataFrames = null;
+                return frame;
+            }
+
+            return new WebSocketFrame(lengthToProcess, _dataFrame);
         }
+
+        public override void Clear()
+        {
+            _dataFrame = new WebSocketDataFrame(new ArrayView<byte>());
+            _frameIndex = 0;
+            _frameReader = FrameReader.FrameReader.Root;
+        }
+
     }
 }

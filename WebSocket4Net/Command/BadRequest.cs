@@ -9,12 +9,12 @@ namespace WebSocket4Net.Command
         private const string m_WebSocketVersion = "Sec-WebSocket-Version";
         private static readonly string[] m_ValueSeparator = new string[] { ", " };
 
-        public override void ExecuteCommand(WebSocket session, WebSocketCommandInfo commandInfo)
+        public override void ExecuteCommand(WebSocket session, WebSocketFrame frame)
         {
             var dict = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             var verbLine = string.Empty;
 
-            commandInfo.Text.ParseMimeHeader(dict, out verbLine);
+            frame.Text.ParseMimeHeader(dict, out verbLine);
 
             string websocketVersion = dict.GetValue(m_WebSocketVersion, string.Empty);
 

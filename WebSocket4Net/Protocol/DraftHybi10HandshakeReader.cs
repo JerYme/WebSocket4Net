@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace WebSocket4Net.Protocol
+﻿namespace WebSocket4Net.Protocol
 {
     class DraftHybi10HandshakeReader : HandshakeReader
     {
@@ -12,17 +8,13 @@ namespace WebSocket4Net.Protocol
 
         }
 
-        public override WebSocketCommandInfo GetCommandInfo(byte[] readBuffer, int offset, int length, out int left)
+        public override WebSocketFrame BuildHandShakeFrame(byte[] readBuffer, int offset, int length, out int lengthToProcess, out bool success)
         {
-            var cmdInfo = base.GetCommandInfo(readBuffer, offset, length, out left);
-
-            if (cmdInfo == null)
-                return null;
+            var cmdInfo = base.BuildHandShakeFrame(readBuffer, offset, length, out lengthToProcess, out success);
+            if (!success) return null;
 
             //If bad request, NextCommandReader will still be this HandshakeReader
-            if (!BadRequestCode.Equals(cmdInfo.Key))
-                NextCommandReader = new DraftHybi10DataReader();
-            
+            success = !BadRequestCode.Equals(cmdInfo.Key);
             return cmdInfo;
         }
     }

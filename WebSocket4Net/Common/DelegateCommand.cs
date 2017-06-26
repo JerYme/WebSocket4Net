@@ -5,25 +5,25 @@ using SuperSocket.ClientEngine;
 
 namespace WebSocket4Net.Common
 {
-    public delegate void CommandDelegate<TClientSession, TCommandInfo>(TClientSession session, TCommandInfo commandInfo);
+    public delegate void CommandDelegate<in TClientSession, in TFrame>(TClientSession session, TFrame commandInfo);
 
-    class DelegateCommand<TClientSession, TCommandInfo> : ICommand<TClientSession, TCommandInfo>
+    class DelegateCommand<TClientSession, TFrame> : ICommand<TClientSession, TFrame>
         where TClientSession : IClientSession
-        where TCommandInfo : ICommandInfo
+        where TFrame : IWebSocketFrame
     {
-        private CommandDelegate<TClientSession, TCommandInfo> m_Execution;
+        private readonly CommandDelegate<TClientSession, TFrame> _execution;
 
-        public DelegateCommand(string name, CommandDelegate<TClientSession, TCommandInfo> execution)
+        public DelegateCommand(string name, CommandDelegate<TClientSession, TFrame> execution)
         {
             Name = name;
-            m_Execution = execution;
+            _execution = execution;
         }
 
-        public void ExecuteCommand(TClientSession session, TCommandInfo commandInfo)
+        public void ExecuteCommand(TClientSession session, TFrame commandInfo)
         {
-            m_Execution(session, commandInfo);
+            _execution(session, commandInfo);
         }
 
-        public string Name { get; private set; }
+        public string Name { get; }
     }
 }

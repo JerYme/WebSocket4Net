@@ -7,10 +7,10 @@ namespace WebSocket4Net.Command
 {
     public class Pong : WebSocketCommandBase
     {
-        public override void ExecuteCommand(WebSocket session, WebSocketCommandInfo commandInfo)
+        public override void ExecuteCommand(WebSocket session, WebSocketFrame frame)
         {
             session.LastActiveTime = DateTime.Now;
-            session.LastPongResponse = commandInfo.Text;
+            session.LastPongResponse = frame.Text;
         }
 
         public override string Name

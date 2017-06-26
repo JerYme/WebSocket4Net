@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
-using SuperSocket.ClientEngine;
 
 namespace WebSocket4Net.Protocol
 {
@@ -9,7 +7,7 @@ namespace WebSocket4Net.Protocol
     {
         protected const string HeaderItemFormat = "{0}: {1}";
 
-        public ProtocolProcessorBase(WebSocketVersion version, ICloseStatusCode closeStatusCode)
+        protected ProtocolProcessorBase(WebSocketVersion version, ICloseStatusCode closeStatusCode)
         {
             CloseStatusCode = closeStatusCode;
             Version = version;
@@ -18,9 +16,10 @@ namespace WebSocket4Net.Protocol
 
         public abstract void SendHandshake(WebSocket websocket);
 
-        public abstract ReaderBase CreateHandshakeReader(WebSocket websocket);
+        public abstract HandshakeReaderBase CreateHandshakeReader(WebSocket websocket);
+        public abstract DataReaderBase CreateDataReader(WebSocket websocket, HandshakeReaderBase handshakeReaderBase);
 
-        public abstract bool VerifyHandshake(WebSocket websocket, WebSocketCommandInfo handshakeInfo, out string description);
+        public abstract bool VerifyHandshake(WebSocket websocket, WebSocketFrame handshakeInfo, out string description);
 
         public abstract void SendMessage(WebSocket websocket, string message);
 
@@ -44,11 +43,11 @@ namespace WebSocket4Net.Protocol
 
         protected string VersionTag { get; private set; }
 
-        private static char[] s_SpaceSpliter = new char[] { ' ' };
+        private static readonly char[] _spaceSpliter = { ' ' };
 
         protected virtual bool ValidateVerbLine(string verbLine)
         {
-            var parts = verbLine.Split(s_SpaceSpliter, 3, StringSplitOptions.RemoveEmptyEntries);
+            var parts = verbLine.Split(_spaceSpliter, 3, StringSplitOptions.RemoveEmptyEntries);
 
             if (parts.Length < 2)
                 return false;
@@ -56,12 +55,8 @@ namespace WebSocket4Net.Protocol
             if (!parts[0].StartsWith("HTTP/"))
                 return false;
 
-            var statusCode = 0;
-
-            if (!int.TryParse(parts[1], out statusCode))
-                return false;
-
-            return statusCode == 101;
+            int statusCode;
+            return int.TryParse(parts[1], out statusCode) && statusCode == 101;
         }
     }
 }

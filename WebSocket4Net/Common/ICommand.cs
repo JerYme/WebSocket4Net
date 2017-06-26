@@ -1,17 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace WebSocket4Net.Common
+﻿namespace WebSocket4Net.Common
 {
     public interface ICommand
     {
         string Name { get; }
     }
 
-    public interface ICommand<TSession, TCommandInfo> : ICommand
-        where TCommandInfo : ICommandInfo
+    public interface ICommand<in TSession, in TFrame> : ICommand where TFrame : IWebSocketFrame
     {
-        void ExecuteCommand(TSession session, TCommandInfo commandInfo);
+        void ExecuteCommand(TSession session, TFrame commandInfo);
     }
 }

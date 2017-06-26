@@ -2,107 +2,75 @@
 using System.Collections.Generic;
 using System.Text;
 using SuperSocket.ClientEngine;
+using WebSocket4Net.Common;
 
 namespace WebSocket4Net.Protocol
 {
     class DraftHybi00HandshakeReader : HandshakeReader
     {
         //-1 indicate response header has not been received
-        private int m_ReceivedChallengeLength = -1;
-        private int m_ExpectedChallengeLength = 16;
+        private int _receivedChallengeLength = -1;
+        private int _expectedChallengeLength = 16;
 
-        private WebSocketCommandInfo m_HandshakeCommand = null;
-        private byte[] m_Challenges = new byte[16];
+        private WebSocketFrame _handshakeCommand;
+        private byte[] _challenges = new byte[16];
 
-        
 
         public DraftHybi00HandshakeReader(WebSocket websocket)
             : base(websocket)
         {
-
         }
 
-        void SetDataReader()
-        {
-            NextCommandReader = new DraftHybi00DataReader(this);
-        }
-
-        public override WebSocketCommandInfo GetCommandInfo(byte[] readBuffer, int offset, int length, out int left)
+        public override WebSocketFrame BuildHandShakeFrame(byte[] readBuffer, int offset, int length, out int lengthToProcess, out bool success)
         {
             //haven't receive handshake header
-            if (m_ReceivedChallengeLength < 0)
+            if (_receivedChallengeLength < 0)
             {
-                var commandInfo = base.GetCommandInfo(readBuffer, offset, length, out left);
-
-                if (commandInfo == null)
-                    return null;
+                var handShakeFrame = base.BuildHandShakeFrame(readBuffer, offset, length, out lengthToProcess, out success);
+                if (handShakeFrame == null) return null;
 
                 //Bad request
-                if (BadRequestCode.Equals(commandInfo.Key))
-                    return commandInfo;
+                if (BadRequestCode.Equals(handShakeFrame.Key)) return handShakeFrame;
 
-                m_ReceivedChallengeLength = 0;
-                m_HandshakeCommand = commandInfo;
+                _receivedChallengeLength = 0;
+                _handshakeCommand = handShakeFrame;
 
-                var challengeOffset = offset + length - left;
+                var challengeOffset = offset + length - lengthToProcess;
 
-                if (left < m_ExpectedChallengeLength)
+                if (lengthToProcess < _expectedChallengeLength)
                 {
-                    if (left > 0)
+                    if (lengthToProcess > 0)
                     {
-                        Buffer.BlockCopy(readBuffer, challengeOffset, m_Challenges, 0, left);
-                        m_ReceivedChallengeLength = left;
-                        left = 0;
+                        Buffer.BlockCopy(readBuffer, challengeOffset, _challenges, 0, lengthToProcess);
+                        _receivedChallengeLength = lengthToProcess;
+                        lengthToProcess = 0;
                     }
 
                     return null;
                 }
-                else if (left == m_ExpectedChallengeLength)
-                {
-                    Buffer.BlockCopy(readBuffer, challengeOffset, m_Challenges, 0, left);
-                    SetDataReader();
-                    m_HandshakeCommand.Data = m_Challenges;
-                    left = 0;
-                    return m_HandshakeCommand;
-                }
-                else
-                {
-                    Buffer.BlockCopy(readBuffer, challengeOffset, m_Challenges, 0, m_ExpectedChallengeLength);
-                    left -= m_ExpectedChallengeLength;
-                    SetDataReader();
-                    m_HandshakeCommand.Data = m_Challenges;
-                    return m_HandshakeCommand;
-                }
+                Buffer.BlockCopy(readBuffer, challengeOffset, _challenges, 0, _expectedChallengeLength);
+                success = true;
+                _handshakeCommand.Data = _challenges;
+                lengthToProcess -= _expectedChallengeLength;
+                return _handshakeCommand;
             }
-            else
+
+            int receivedTotal = _receivedChallengeLength + length;
+            if (receivedTotal < _expectedChallengeLength)
             {
-                int receivedTotal = m_ReceivedChallengeLength + length;
-                
-                if (receivedTotal < m_ExpectedChallengeLength)
-                {
-                    Buffer.BlockCopy(readBuffer, offset, m_Challenges, m_ReceivedChallengeLength, length);
-                    left = 0;
-                    m_ReceivedChallengeLength = receivedTotal;
-                    return null;
-                }
-                else if (receivedTotal == m_ExpectedChallengeLength)
-                {
-                    Buffer.BlockCopy(readBuffer, offset, m_Challenges, m_ReceivedChallengeLength, length);
-                    left = 0;
-                    SetDataReader();
-                    m_HandshakeCommand.Data = m_Challenges;
-                    return m_HandshakeCommand;
-                }
-                else
-                {
-                    var parsedLen = m_ExpectedChallengeLength - m_ReceivedChallengeLength;
-                    Buffer.BlockCopy(readBuffer, offset, m_Challenges, m_ReceivedChallengeLength, parsedLen);
-                    left = length - parsedLen;
-                    SetDataReader();
-                    m_HandshakeCommand.Data = m_Challenges;
-                    return m_HandshakeCommand;
-                }
+                Buffer.BlockCopy(readBuffer, offset, _challenges, _receivedChallengeLength, length);
+                lengthToProcess = 0;
+                _receivedChallengeLength = receivedTotal;
+                success = false;
+                return null;
             }
+            var parsedLen = _expectedChallengeLength - _receivedChallengeLength;
+            Buffer.BlockCopy(readBuffer, offset, _challenges, _receivedChallengeLength, parsedLen);
+            lengthToProcess = length - parsedLen;
+            success = true;
+            _handshakeCommand.Data = _challenges;
+            return _handshakeCommand;
+
         }
     }
 }

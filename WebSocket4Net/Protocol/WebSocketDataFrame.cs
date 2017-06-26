@@ -1,23 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using WebSocket4Net.Common;
+﻿using WebSocket4Net.Common;
 
 namespace WebSocket4Net.Protocol
 {
     public class WebSocketDataFrame
     {
-        private ArraySegmentList m_InnerData;
+        private int _actualPayloadLength = -1;
+        public readonly ArrayView<byte> ArrayView;
 
-        public ArraySegmentList InnerData
+        public WebSocketDataFrame(ArrayView<byte> arrayView)
         {
-            get { return m_InnerData; }
+            ArrayView = arrayView;
         }
 
-        public WebSocketDataFrame(ArraySegmentList data)
+        public void Clear()
         {
-            m_InnerData = data;
-            m_InnerData.ClearSegements();
+            ArrayView.Clear();
+            //ExtensionData = new byte[0];
+            //ApplicationData = new byte[0];
+            _actualPayloadLength = -1;
         }
 
         public bool IsControlFrame
@@ -38,93 +38,61 @@ namespace WebSocket4Net.Protocol
             }
         }
 
-        public bool FIN
-        {
-            get { return ((m_InnerData[0] & 0x80) == 0x80); }
-        }
+        public bool FIN => ((ArrayView[0] & 0x80) == 0x80);
 
-        public bool RSV1
-        {
-            get { return ((m_InnerData[0] & 0x40) == 0x40); }
-        }
+        public bool RSV1 => ((ArrayView[0] & 0x40) == 0x40);
 
-        public bool RSV2
-        {
-            get { return ((m_InnerData[0] & 0x20) == 0x20); }
-        }
+        public bool RSV2 => ((ArrayView[0] & 0x20) == 0x20);
 
-        public bool RSV3
-        {
-            get { return ((m_InnerData[0] & 0x10) == 0x10); }
-        }
+        public bool RSV3 => ((ArrayView[0] & 0x10) == 0x10);
 
-        public sbyte OpCode
-        {
-            get { return (sbyte)(m_InnerData[0] & 0x0f); }
-        }
+        public sbyte OpCode => (sbyte)(ArrayView[0] & 0x0f);
 
-        public bool HasMask
-        {
-            get { return ((m_InnerData[1] & 0x80) == 0x80); }
-        }
+        public bool HasMask => ((ArrayView[1] & 0x80) == 0x80);
 
-        public sbyte PayloadLenght
-        {
-            get { return (sbyte)(m_InnerData[1] & 0x7f); }
-        }
+        public sbyte PayloadLength => (sbyte)(ArrayView[1] & 0x7f);
 
-        private long m_ActualPayloadLength = -1;
 
-        public long ActualPayloadLength
+        public int ActualPayloadLength
         {
             get
             {
-                if (m_ActualPayloadLength >= 0)
-                    return m_ActualPayloadLength;
+                if (_actualPayloadLength >= 0)
+                    return _actualPayloadLength;
 
-                var payloadLength = PayloadLenght;
+                var payloadLength = PayloadLength;
 
                 if (payloadLength < 126)
-                    m_ActualPayloadLength = payloadLength;
+                    _actualPayloadLength = payloadLength;
                 else if (payloadLength == 126)
                 {
-                    m_ActualPayloadLength = (int)m_InnerData[2] * 256 + (int)m_InnerData[3];
+                    _actualPayloadLength = ArrayView[2] * 256 + ArrayView[3];
                 }
                 else
                 {
-                    long len = 0;
+                    int len = 0;
                     int n = 1;
 
                     for (int i = 7; i >= 0; i--)
                     {
-                        len += (int)m_InnerData[i + 2] * n;
+                        len += ArrayView[i + 2] * n;
                         n *= 256;
                     }
 
-                    m_ActualPayloadLength = len;
+                    _actualPayloadLength = len;
                 }
 
-                return m_ActualPayloadLength;
+                return _actualPayloadLength;
             }
         }
 
         public byte[] MaskKey { get; set; }
 
-        public byte[] ExtensionData { get; set; }
+        //public byte[] ExtensionData { get; set; }
 
-        public byte[] ApplicationData { get; set; }
+        //public byte[] ApplicationData { get; set; }
 
-        public int Length
-        {
-            get { return m_InnerData.Count; }
-        }
+        public int ArrayLength => ArrayView.Length;
 
-        public void Clear()
-        {
-            m_InnerData.ClearSegements();
-            ExtensionData = new byte[0];
-            ApplicationData = new byte[0];
-            m_ActualPayloadLength = -1;
-        }
     }
 }

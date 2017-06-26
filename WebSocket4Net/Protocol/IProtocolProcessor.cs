@@ -8,9 +8,10 @@ namespace WebSocket4Net.Protocol
     {
         void SendHandshake(WebSocket websocket);
 
-        bool VerifyHandshake(WebSocket websocket, WebSocketCommandInfo handshakeInfo, out string description);
+        bool VerifyHandshake(WebSocket websocket, WebSocketFrame handshakeInfo, out string description);
 
-        ReaderBase CreateHandshakeReader(WebSocket websocket);
+        HandshakeReaderBase CreateHandshakeReader(WebSocket websocket);
+        DataReaderBase CreateDataReader(WebSocket websocket, HandshakeReaderBase handshakeReaderBase);
 
         void SendMessage(WebSocket websocket, string message);
 

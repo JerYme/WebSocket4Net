@@ -1,11 +1,45 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using WebSocket4Net.Common;
+﻿using WebSocket4Net.Common;
+using WebSocket4Net.Protocol.FrameReader;
 
 namespace WebSocket4Net.Protocol
 {
-    public abstract class ReaderBase : IClientCommandReader<WebSocketCommandInfo>
+    public abstract class HandshakeReaderBase : ReaderBase
+    {
+        protected HandshakeReaderBase(WebSocket websocket) : base(websocket)
+        {
+        }
+
+        protected HandshakeReaderBase(WebSocket websocket, ArrayView<byte> arrayView) : base(websocket, arrayView)
+        {
+        }
+
+
+        public abstract WebSocketFrame BuildHandShakeFrame(byte[] readBuffer, int offset, int length, out int lengthToProcess, out bool success);
+
+    }
+    public abstract class DataReaderBase : ReaderBase
+    {
+        protected DataReaderBase(WebSocket websocket) : base(websocket)
+        {
+        }
+
+        protected DataReaderBase(WebSocket websocket, ArrayView<byte> arrayView) : base(websocket, arrayView)
+        {
+        }
+
+        public virtual new ArrayChunk<byte> AddSegment(byte[] readBuffer, int offset, int length, bool copy) => base.AddSegment(readBuffer, offset, length, true);
+        public virtual new ArrayChunk<byte> AddSegment(ArrayChunk<byte> segment) => base.AddSegment(segment);
+
+        public abstract bool Process(out int lengthToProcess);
+        public abstract WebSocketFrame BuildWebSocketFrame(int lengthToProcess);
+        public abstract void ResetWebSocketFrame();
+        public virtual void Clear()
+        {
+            
+        }
+    }
+
+    public abstract class ReaderBase : IClientCommandReader<WebSocketFrame>
     {
         protected WebSocket WebSocket { get; private set; }
 
@@ -13,58 +47,45 @@ namespace WebSocket4Net.Protocol
         /// Initializes a new instance of the <see cref="ReaderBase"/> class.
         /// </summary>
         /// <param name="websocket">The websocket.</param>
-        public ReaderBase(WebSocket websocket)
+        protected ReaderBase(WebSocket websocket) : this(websocket, new ArrayView<byte>())
         {
-            WebSocket = websocket;
-            m_BufferSegments = new ArraySegmentList();
         }
 
-        private readonly ArraySegmentList m_BufferSegments;
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ReaderBase" /> class.
+        /// </summary>
+        /// <param name="websocket">The websocket.</param>
+        /// <param name="arrayView">The segment list.</param>
+        protected ReaderBase(WebSocket websocket, ArrayView<byte> arrayView)
+        {
+            WebSocket = websocket;
+            ArrayView = arrayView;
+        }
 
         /// <summary>
         /// Gets the buffer segments which can help you parse your commands conviniently.
         /// </summary>
-        protected ArraySegmentList BufferSegments
-        {
-            get { return m_BufferSegments; }
-        }
+        public virtual ArrayView<byte> ArrayView { get; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ReaderBase"/> class.
+        /// Adds the segment.
         /// </summary>
-        /// <param name="previousCommandReader">The previous command reader.</param>
-        public ReaderBase(ReaderBase previousCommandReader)
-        {
-            m_BufferSegments = previousCommandReader.BufferSegments;
-        }
-
-        public abstract WebSocketCommandInfo GetCommandInfo(byte[] readBuffer, int offset, int length, out int left);
-
-        /// <summary>
-        /// Gets or sets the next command reader.
-        /// </summary>
-        /// <value>
-        /// The next command reader.
-        /// </value>
-        public IClientCommandReader<WebSocketCommandInfo> NextCommandReader { get; internal set; }
-
-        /// <summary>
-        /// Adds the array segment into BufferSegment.
-        /// </summary>
-        /// <param name="buffer">The buffer.</param>
+        /// <param name="readBuffer">The read buffer.</param>
         /// <param name="offset">The offset.</param>
         /// <param name="length">The length.</param>
-        protected void AddArraySegment(byte[] buffer, int offset, int length)
-        {
-            BufferSegments.AddSegment(buffer, offset, length, true);
-        }
+        /// <param name="copy">if set to <c>true</c> [copy].</param>
+        /// <returns></returns>
+        protected ArrayChunk<byte> AddSegment(byte[] readBuffer, int offset, int length, bool copy) => ArrayView.AddChunk(readBuffer, offset, length, copy);
+        /// <summary>
+        /// Adds the segment.
+        /// </summary>
+        /// <param name="segment">The segment.</param>
+        /// <returns></returns>
+        protected ArrayChunk<byte> AddSegment(ArrayChunk<byte> segment) => ArrayView.AddChunk(segment);
 
         /// <summary>
-        /// Clears the buffer segments.
+        /// Clears the segments.
         /// </summary>
-        protected void ClearBufferSegments()
-        {
-            BufferSegments.ClearSegements();
-        }
+        protected void ClearSegments() => ArrayView.Clear();
     }
 }

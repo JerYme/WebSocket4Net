@@ -7,9 +7,9 @@ namespace WebSocket4Net.Command
 {
     public class Text : WebSocketCommandBase
     {
-        public override void ExecuteCommand(WebSocket session, WebSocketCommandInfo commandInfo)
+        public override void ExecuteCommand(WebSocket session, WebSocketFrame frame)
         {
-            session.FireMessageReceived(commandInfo.Text);
+            session.FireMessageReceived(frame.Text);
         }
 
         public override string Name

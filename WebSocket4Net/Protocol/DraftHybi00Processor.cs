@@ -42,17 +42,15 @@ namespace WebSocket4Net.Protocol
             }
         }
 
-        public override ReaderBase CreateHandshakeReader(WebSocket websocket)
-        {
-            return new DraftHybi00HandshakeReader(websocket);
-        }
+        public override HandshakeReaderBase CreateHandshakeReader(WebSocket websocket) => new DraftHybi00HandshakeReader(websocket);
+        public override DataReaderBase CreateDataReader(WebSocket websocket, HandshakeReaderBase handshakeReaderBase) => new DraftHybi00DataReader(websocket, handshakeReaderBase.ArrayView);
 
         private const string m_Error_ChallengeLengthNotMatch = "challenge length doesn't match";
         private const string m_Error_ChallengeNotMatch = "challenge doesn't match";
         private const string m_Error_InvalidHandshake = "invalid handshake";
 
 
-        public override bool VerifyHandshake(WebSocket websocket, WebSocketCommandInfo handshakeInfo, out string description)
+        public override bool VerifyHandshake(WebSocket websocket, WebSocketFrame handshakeInfo, out string description)
         {
             var challenge = handshakeInfo.Data;
 
@@ -162,7 +160,7 @@ namespace WebSocket4Net.Protocol
             handshakeBuilder.Append("Sec-WebSocket-Key1: ");
             handshakeBuilder.AppendWithCrCf(secKey1);
             handshakeBuilder.Append("Sec-WebSocket-Key2: ");
-            handshakeBuilder.AppendWithCrCf(secKey2);            
+            handshakeBuilder.AppendWithCrCf(secKey2);
             handshakeBuilder.Append("Origin: ");
             handshakeBuilder.AppendWithCrCf(string.IsNullOrEmpty(websocket.Origin) ? websocket.TargetUri.Host : websocket.Origin);
 
@@ -255,7 +253,7 @@ namespace WebSocket4Net.Protocol
             var pos = 0;
 
             for (int i = 0; i < spaceLen; i++)
-                source[pos++]  = (byte)' ';
+                source[pos++] = (byte)' ';
 
             for (int i = 0; i < charLen; i++)
             {

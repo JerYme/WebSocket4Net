@@ -7,6 +7,7 @@ namespace WebSocket4Net
     public class OpCode
     {
         public const int Handshake = -1; // defined by myself
+        public const int Fragmented = 0;
         public const int Text = 1;
         public const int Binary = 2;
         public const int Close = 8;

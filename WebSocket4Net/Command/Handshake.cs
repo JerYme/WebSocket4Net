@@ -6,11 +6,11 @@ namespace WebSocket4Net.Command
 {
     public class Handshake : WebSocketCommandBase
     {
-        public override void ExecuteCommand(WebSocket session, WebSocketCommandInfo commandInfo)
+        public override void ExecuteCommand(WebSocket session, WebSocketFrame frame)
         {
             string description;
 
-            if (!session.ProtocolProcessor.VerifyHandshake(session, commandInfo, out description))
+            if (!session.ProtocolProcessor.VerifyHandshake(session, frame, out description))
             {
                 session.FireError(new Exception(description));
                 session.Close(session.ProtocolProcessor.CloseStatusCode.ProtocolError, description);
