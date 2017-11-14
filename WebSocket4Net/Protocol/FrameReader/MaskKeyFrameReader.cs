@@ -4,24 +4,12 @@
     {
         public override ProcessFrame Process(int index, WebSocketDataFrame frame)
         {
-            int endMask = index + 4;
-
-            if (frame.ArrayLength < endMask)
-            {
+            const int maskLength = 4;
+            if (frame.ArrayLength < index + maskLength)
                 return ProcessFrame.Fail(index, this, frame.ArrayLength - index);
-            }
 
             frame.MaskKey = frame.ArrayView.ToArrayData(index, 4);
-
-            if (frame.ActualPayloadLength == 0)
-            {
-                return ProcessFrame.Pass(index, null, frame.ArrayLength - endMask);
-            }
-
-            if (frame.ArrayLength > endMask)
-                return Payload.Process(endMask, frame);
-
-            return ProcessFrame.Pass(index);
+            return PayloadData.Process(index + maskLength, frame);
         }
     }
 }

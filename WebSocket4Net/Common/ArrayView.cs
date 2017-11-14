@@ -31,12 +31,15 @@ namespace WebSocket4Net.Common
         }
 
         public IEnumerable<ArrayChunk<T>> Range(int start) => Range(start, _chunks.Count - start);
-        public IEnumerable<ArrayChunk<T>> Range(int start, int count) => Enumerable.Range(start, count).Where(i => i > -1 && i < _chunks.Count).Select(i =>
+        public IEnumerable<ArrayChunk<T>> Range(int start, int count)
         {
-            var arrayChunk = _chunks[i];
-            arrayChunk.Index = i;
-            return arrayChunk;
-        });
+            for (int i = start; i < count && i > -1 && i < _chunks.Count; i++)
+            {
+                var arrayChunk = _chunks[i];
+                arrayChunk.Index = i;
+                yield return arrayChunk;
+            }
+        }
 
         private int GetInternalIndex(int index, out ArrayChunk<T> chunk)
         {

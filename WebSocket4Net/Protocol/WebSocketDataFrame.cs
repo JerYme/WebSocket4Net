@@ -83,35 +83,7 @@ namespace WebSocket4Net.Protocol
         }
 
 
-        public int ActualPayloadLength
-        {
-            get
-            {
-                if (_actualPayloadLength >= 0) return _actualPayloadLength;
-
-                var payloadLength = PayloadLength;
-
-                if (payloadLength < 126)
-                    _actualPayloadLength = payloadLength;
-                else if (payloadLength == 126)
-                    _actualPayloadLength = ArrayView[2] * 256 + ArrayView[3];
-                else
-                {
-                    int len = 0;
-                    int n = 1;
-
-                    for (int i = 7; i >= 0; i--)
-                    {
-                        len += ArrayView[i + 2] * n;
-                        n *= 256;
-                    }
-
-                    _actualPayloadLength = len;
-                }
-
-                return _actualPayloadLength;
-            }
-        }
+        public int ActualPayloadLength => ActualPayloadLengthNullable.GetValueOrDefault();
 
         public int PayloadIndex { get; set; } = -1;
 

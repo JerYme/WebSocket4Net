@@ -4,22 +4,22 @@
     {
         static FrameReader()
         {
-            Header = new HeaderFrameReader();
-            ExtendedPayload = new ExtendedPayloadFrameReader();
+            PayloadLength = new PayloadLengthFrameReader();
+            ExtendedPayloadLength = new ExtendedPayloadLengthFrameReader();
             MaskKey = new MaskKeyFrameReader();
-            Payload = new PayloadFrameReader();
+            PayloadData = new PayloadDataFrameReader();
         }
 
         public abstract ProcessFrame Process(int index, WebSocketDataFrame frame);
 
-        public static IFrameReader Root => Header;
+        public static IFrameReader Root => PayloadLength;
 
-        protected static IFrameReader Header { get; }
+        protected static IFrameReader PayloadLength { get; }
 
-        protected static IFrameReader ExtendedPayload { get; }
+        protected static IFrameReader ExtendedPayloadLength { get; }
 
         protected static IFrameReader MaskKey { get; }
 
-        protected static IFrameReader Payload { get; }
+        protected static IFrameReader PayloadData { get; }
     }
 }

@@ -81,12 +81,12 @@
     <Compile Include="Protocol\DraftHybi10DataReader.cs" />
     <Compile Include="Protocol\DraftHybi10HandshakeReader.cs" />
     <Compile Include="Protocol\DraftHybi10Processor.cs" />
-    <Compile Include="Protocol\FrameReader\ExtensionFrameReader.cs" />
+    <Compile Include="Protocol\FrameReader\ExtendedPayloadLengthFrameReader.cs" />
     <Compile Include="Protocol\FrameReader\FrameReader.cs" />
-    <Compile Include="Protocol\FrameReader\HeaderFrameReader.cs" />
     <Compile Include="Protocol\FrameReader\IFrameReader.cs" />
     <Compile Include="Protocol\FrameReader\MaskKeyFrameReader.cs" />
-    <Compile Include="Protocol\FrameReader\PayloadReader.cs" />
+    <Compile Include="Protocol\FrameReader\PayloadDataFrameReader.cs" />
+    <Compile Include="Protocol\FrameReader\PayloadLengthFrameReader.cs" />
     <Compile Include="Protocol\HandshakeReader.cs" />
     <Compile Include="Protocol\ICloseStatusCode.cs" />
     <Compile Include="Protocol\IProtocolProcessor.cs" />
