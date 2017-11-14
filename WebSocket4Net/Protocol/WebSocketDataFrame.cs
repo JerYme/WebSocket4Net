@@ -1,4 +1,6 @@
-﻿using WebSocket4Net.Common;
+﻿using System;
+using System.Text;
+using WebSocket4Net.Common;
 
 namespace WebSocket4Net.Protocol
 {
@@ -9,14 +11,13 @@ namespace WebSocket4Net.Protocol
 
         public WebSocketDataFrame(ArrayView<byte> arrayView)
         {
+            if (arrayView == null) throw new ArgumentNullException(nameof(arrayView));
             ArrayView = arrayView;
         }
 
         public void Clear()
         {
             ArrayView.Clear();
-            //ExtensionData = new byte[0];
-            //ApplicationData = new byte[0];
             _actualPayloadLength = -1;
         }
 
@@ -52,22 +53,48 @@ namespace WebSocket4Net.Protocol
 
         public sbyte PayloadLength => (sbyte)(ArrayView[1] & 0x7f);
 
+        public int? ActualPayloadLengthNullable
+        {
+            get
+            {
+                if (_actualPayloadLength >= 0) return _actualPayloadLength;
+                if (ArrayView.Length < 2) return null;
+
+                var payloadLength = PayloadLength;
+                if (payloadLength < 126) return payloadLength;
+                if (payloadLength == 126)
+                {
+                    if (ArrayView.Length < 4) return null;
+                    return ArrayView[2] * 256 + ArrayView[3];
+                }
+
+                if (ArrayView.Length < 10) return null;
+                int len = 0;
+                int n = 1;
+
+                for (int i = 7; i >= 0; i--)
+                {
+                    len += ArrayView[i + 2] * n;
+                    n *= 256;
+                }
+
+                return len;
+            }
+        }
+
 
         public int ActualPayloadLength
         {
             get
             {
-                if (_actualPayloadLength >= 0)
-                    return _actualPayloadLength;
+                if (_actualPayloadLength >= 0) return _actualPayloadLength;
 
                 var payloadLength = PayloadLength;
 
                 if (payloadLength < 126)
                     _actualPayloadLength = payloadLength;
                 else if (payloadLength == 126)
-                {
                     _actualPayloadLength = ArrayView[2] * 256 + ArrayView[3];
-                }
                 else
                 {
                     int len = 0;
@@ -86,6 +113,8 @@ namespace WebSocket4Net.Protocol
             }
         }
 
+        public int PayloadIndex { get; set; } = -1;
+
         public byte[] MaskKey { get; set; }
 
         //public byte[] ExtensionData { get; set; }
@@ -94,5 +123,10 @@ namespace WebSocket4Net.Protocol
 
         public int ArrayLength => ArrayView.Length;
 
+        public void DecodeMask() => ArrayView.DecodeMask(MaskKey, PayloadIndex, ActualPayloadLength);
+
+        public int Decode(StringBuilderShared sb) => ArrayView.Decode(Encoding.UTF8, PayloadIndex, ActualPayloadLength, sb);
+
+        public int Decode(byte[] array, int index) => ArrayView.CopyTo(array, PayloadIndex, index, ActualPayloadLength);
     }
 }

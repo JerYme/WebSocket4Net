@@ -8,7 +8,6 @@ namespace WebSocket4Net.Protocol
         private byte? _type;
         private int _tempLength;
         private int? _length;
-        private WebSocketFrameEx _webSocketFrameEx;
 
         private const byte _closingHandshakeType = 0xFF;
 
@@ -20,51 +19,12 @@ namespace WebSocket4Net.Protocol
         {
         }
 
-        public override ArrayChunk<byte> AddChunk(ArrayChunk<byte> segment) => AddChunk(segment.Array, segment.Offset, segment.Length, false);
 
-        public override ArrayChunk<byte> AddChunk(byte[] readBuffer, int offset, int length, bool copy)
+        public override WebSocketFrameProcessed TryBuildWebSocketFrame(ArrayHolder<byte> ah, int offset, int length)
         {
-            _webSocketFrameEx = BuildWebSocketFrameEx(readBuffer, offset, length);
-            var segments = ArrayView.Chunks;
-            return segments.Count > 0 ? segments[segments.Count - 1] : null;
+            var webSocketFrameEx = BuildWebSocketFrameEx(ah.Array, offset, length);
+            return new WebSocketFrameProcessed(webSocketFrameEx.Frame != null,null, webSocketFrameEx.Left);
         }
-
-
-        public override bool Process(out int lengthToProcess)
-        {
-            lengthToProcess = _webSocketFrameEx.Left;
-            return _webSocketFrameEx.Frame != null;
-        }
-
-        public override WebSocketFrame BuildWebSocketFrame()
-        {
-            return _webSocketFrameEx.Frame;
-        }
-
-        public override void ResetDataFrame()
-        {
-            
-        }
-
-
-        struct WebSocketFrameEx
-        {
-            public readonly WebSocketFrame Frame;
-            public readonly int Left;
-
-            public WebSocketFrameEx(int left) : this()
-            {
-                Left = left;
-            }
-
-            public WebSocketFrameEx(WebSocketFrame frame, int left)
-            {
-                Frame = frame;
-                Left = left;
-            }
-        }
-
-
 
         WebSocketFrameEx BuildWebSocketFrameEx(byte[] readBuffer, int offset, int length)
         {
@@ -108,7 +68,7 @@ namespace WebSocket4Net.Protocol
                     }
                 }
 
-                AddChunk(readBuffer, offset + skipByteCount, length - skipByteCount, true);
+                base.AddChunk(readBuffer, offset + skipByteCount, length - skipByteCount, true);
                 return new WebSocketFrameEx(left);
             }
 
@@ -166,6 +126,24 @@ namespace WebSocket4Net.Protocol
                 return new WebSocketFrameEx(commandInfo, left);
             }
         }
+
+        struct WebSocketFrameEx
+        {
+            public readonly WebSocketFrame Frame;
+            public readonly int Left;
+
+            public WebSocketFrameEx(int left) : this()
+            {
+                Left = left;
+            }
+
+            public WebSocketFrameEx(WebSocketFrame frame, int left)
+            {
+                Frame = frame;
+                Left = left;
+            }
+        }
+
 
         void Reset(bool clearBuffer)
         {

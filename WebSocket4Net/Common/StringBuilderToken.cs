@@ -42,17 +42,19 @@ namespace WebSocket4Net.Common
         }
 
         internal static StringBuilderShared Acquire(WebSocketDataFrame frame) => Acquire(Encoding.UTF8.GetMaxCharCount(frame.ActualPayloadLength), Encoding.UTF8.GetMaxCharCount(frame.ArrayView.MaxChunkLength));
+        internal static StringBuilderShared Acquire(WebSocketDataFrame frame, int minusLength) => Acquire(Encoding.UTF8.GetMaxCharCount(frame.ActualPayloadLength - minusLength), Encoding.UTF8.GetMaxCharCount(frame.ArrayView.MaxChunkLength));
 
-        internal static StringBuilderShared Acquire(int capacity) => Acquire(capacity, Encoding.UTF8.GetMaxCharCount(4096));
+        internal static StringBuilderShared Acquire(int stringBuilderCapacity) => Acquire(stringBuilderCapacity, Encoding.UTF8.GetMaxCharCount(4096));
 
-        internal static StringBuilderShared Acquire(int capacity, int buffer)
+        internal static StringBuilderShared Acquire(int stringBuilderCapacity, int charBufferSize)
         {
-            if (_sbStatic == null) _sbStatic = new StringBuilder(capacity);
-            else if (_sbStatic.Capacity < capacity)
+            if (stringBuilderCapacity < 4) stringBuilderCapacity = 4;
+            if (_sbStatic == null) _sbStatic = new StringBuilder(stringBuilderCapacity);
+            else if (_sbStatic.Capacity < stringBuilderCapacity)
             {
-                _sbStatic.EnsureCapacity(capacity);
+                _sbStatic.EnsureCapacity(stringBuilderCapacity);
             }
-            if (_bufferStatic == null || _bufferStatic.Length < buffer) _bufferStatic = new char[buffer];
+            if (_bufferStatic == null || _bufferStatic.Length < charBufferSize) _bufferStatic = new char[charBufferSize];
             return new StringBuilderShared(_sbStatic, _bufferStatic);
         }
     }

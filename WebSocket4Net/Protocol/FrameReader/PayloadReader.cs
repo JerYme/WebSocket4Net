@@ -2,16 +2,17 @@
 {
     class PayloadFrameReader : FrameReader
     {
-        public override ProcessFrame Process(int frameIndex, WebSocketDataFrame frame)
+        public override ProcessFrame Process(int index, WebSocketDataFrame frame)
         {
-            var targetSize = frameIndex + frame.ActualPayloadLength;
+            frame.PayloadIndex = index;
+            var targetSize = index + frame.ActualPayloadLength;
 
             if (frame.ArrayLength < targetSize)
             {
-                return ProcessFrame.Fail(frameIndex, this);
+                return ProcessFrame.Fail(index, this);
             }
 
-            return ProcessFrame.Pass(frameIndex,null, frame.ArrayLength - targetSize);
+            return ProcessFrame.Pass(index,null, frame.ArrayLength - targetSize);
         }
     }
 }

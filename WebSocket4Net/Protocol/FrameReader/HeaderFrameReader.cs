@@ -2,14 +2,14 @@
 {
     class HeaderFrameReader : FrameReader
     {
-        public override ProcessFrame Process(int frameIndex, WebSocketDataFrame frame)
+        public override ProcessFrame Process(int index, WebSocketDataFrame frame)
         {
             if (frame.ArrayLength < 2)
             {
-                return ProcessFrame.Fail(frameIndex,this, frame.ArrayLength - frameIndex);
+                return ProcessFrame.Fail(index, this, frame.ArrayLength - index);
             }
 
-                    IFrameReader  nextFrameReader;
+            IFrameReader nextFrameReader;
             if (frame.PayloadLength < 126)
             {
                 if (frame.HasMask)
@@ -20,7 +20,7 @@
                 {
                     if (frame.ActualPayloadLength == 0)
                     {
-                        return ProcessFrame.Pass(frameIndex,null, frame.ArrayLength - 2);
+                        return ProcessFrame.Pass(index, null, frame.ArrayLength - 2);
                     }
 
                     nextFrameReader = Payload;
@@ -28,13 +28,13 @@
             }
             else
             {
-                nextFrameReader = Extension;
+                nextFrameReader = ExtendedPayload;
             }
 
             if (frame.ArrayLength > 2)
                 return nextFrameReader.Process(2, frame);
 
-            return ProcessFrame.Pass(frameIndex);
+            return ProcessFrame.Pass(index);
         }
     }
 }

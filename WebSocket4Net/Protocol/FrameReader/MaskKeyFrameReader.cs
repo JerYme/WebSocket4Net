@@ -2,26 +2,26 @@
 {
     class MaskKeyFrameReader : FrameReader
     {
-        public override ProcessFrame Process(int frameIndex, WebSocketDataFrame frame)
+        public override ProcessFrame Process(int index, WebSocketDataFrame frame)
         {
-            int endMask = frameIndex + 4;
+            int endMask = index + 4;
 
             if (frame.ArrayLength < endMask)
             {
-                return ProcessFrame.Fail(frameIndex, this, frame.ArrayLength - frameIndex);
+                return ProcessFrame.Fail(index, this, frame.ArrayLength - index);
             }
 
-            frame.MaskKey = frame.ArrayView.ToArrayData(frameIndex, 4);
+            frame.MaskKey = frame.ArrayView.ToArrayData(index, 4);
 
             if (frame.ActualPayloadLength == 0)
             {
-                return ProcessFrame.Pass(frameIndex, null, frame.ArrayLength - endMask);
+                return ProcessFrame.Pass(index, null, frame.ArrayLength - endMask);
             }
 
             if (frame.ArrayLength > endMask)
-                return new PayloadFrameReader().Process(endMask, frame);
+                return Payload.Process(endMask, frame);
 
-            return ProcessFrame.Pass(frameIndex);
+            return ProcessFrame.Pass(index);
         }
     }
 }

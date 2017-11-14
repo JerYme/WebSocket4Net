@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using WebSocket4Net.Common;
@@ -46,64 +47,38 @@ namespace WebSocket4Net
             _dataFrames = dataFrames;
         }
 
-        public WebSocketDataFrame FirstDataFrames => _dataFrames?[0];
-        public IList<WebSocketDataFrame> DataFrames => _dataFrames;
-
-        public void Decode(int lengthExcluded)
+        public void Decode()
         {
             if (_dataFrames == null) return;
-            Decode(_dataFrames, lengthExcluded);
+            Decode(_dataFrames);
         }
 
-        private void Decode(IList<WebSocketDataFrame> dataFrames, int lengthExcluded)
+        private void Decode(IList<WebSocketDataFrame> dataFrames)
         {
-            var firstFrame = dataFrames[0];
-            var opCode = firstFrame.OpCode;
+            var opCode = dataFrames[0].OpCode;
             Key = opCode.ToString();
-            var length = firstFrame.ActualPayloadLength;
-            var offset = firstFrame.ArrayView.Length - length - (lengthExcluded < 0 ? 0 : lengthExcluded);
-
             if (opCode == OpCode.Close)
             {
-                if (firstFrame.HasMask)
-                {
-                    firstFrame.ArrayView.DecodeMask(firstFrame.MaskKey, offset, length);
-                }
+                var closeFrame = dataFrames[0];
+                if (closeFrame.HasMask) closeFrame.DecodeMask();
 
-                using (var sb = StringBuilderShared.Acquire(firstFrame))
+                var length = closeFrame.ActualPayloadLength;
+                var offset = closeFrame.PayloadIndex;
+
+                using (var sb = StringBuilderShared.Acquire(closeFrame, 2))
                 {
                     if (length >= 2)
                     {
-                        var closeStatusCode = firstFrame.ArrayView.ToArrayData(offset, 2);
+                        var closeStatusCode = closeFrame.ArrayView.ToArrayData(closeFrame.PayloadIndex, 2);
                         CloseStatusCode = (short)(closeStatusCode[0] * 256 + closeStatusCode[1]);
 
                         if (length > 2)
                         {
-                            firstFrame.ArrayView.Decode(Encoding.UTF8, offset + 2, length - 2, sb);
+                            closeFrame.ArrayView.Decode(Encoding.UTF8, offset + 2, length - 2, sb);
                         }
                     }
-                    else if (length > 0)
-                    {
-                        firstFrame.ArrayView.Decode(Encoding.UTF8, offset, length, sb);
-                    }
 
-                    if (dataFrames.Count > 1)
-                    {
-                        for (var i = 1; i < dataFrames.Count; i++)
-                        {
-                            var frame = dataFrames[i];
-
-                            offset = frame.ArrayView.Length - frame.ActualPayloadLength;
-                            length = frame.ActualPayloadLength;
-
-                            if (frame.HasMask)
-                            {
-                                frame.ArrayView.DecodeMask(frame.MaskKey, offset, length);
-                            }
-
-                            frame.ArrayView.Decode(Encoding.UTF8, offset, length, sb);
-                        }
-                    }
+                    Debug.Assert(dataFrames.Count == 1); // control frame must not be fragmented !
 
                     Text = sb.ToString();
                     return;
@@ -112,23 +87,16 @@ namespace WebSocket4Net
 
             if (opCode == OpCode.Binary)
             {
-                var resultBuffer = new byte[dataFrames.Sum(f => f.ActualPayloadLength)];
+                var array = new byte[dataFrames.Sum(f => f.ActualPayloadLength)];
                 int copied = 0;
                 for (var i = 0; i < dataFrames.Count; i++)
                 {
                     var frame = dataFrames[i];
-
-                    if (frame.HasMask)
-                    {
-                        frame.ArrayView.DecodeMask(frame.MaskKey, offset, length);
-                    }
-
-                    frame.ArrayView.CopyTo(resultBuffer, offset, copied, length);
-
-                    copied += length;
+                    if (frame.HasMask) frame.DecodeMask();
+                    copied += frame.Decode(array, copied);
                 }
 
-                Data = resultBuffer;
+                Data = array;
                 return;
             }
 
@@ -137,13 +105,8 @@ namespace WebSocket4Net
                 for (var i = 0; i < dataFrames.Count; i++)
                 {
                     var frame = dataFrames[i];
-
-                    if (frame.HasMask)
-                    {
-                        frame.ArrayView.DecodeMask(frame.MaskKey, offset, length);
-                    }
-
-                    frame.ArrayView.Decode(Encoding.UTF8, offset, length, sb);
+                    if (frame.HasMask) frame.DecodeMask();
+                    frame.Decode(sb);
                 }
 
                 Text = sb.ToString();

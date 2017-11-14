@@ -5,18 +5,18 @@
         static FrameReader()
         {
             Header = new HeaderFrameReader();
-            Extension = new ExtensionFrameReader();
+            ExtendedPayload = new ExtendedPayloadFrameReader();
             MaskKey = new MaskKeyFrameReader();
             Payload = new PayloadFrameReader();
         }
 
-        public abstract ProcessFrame Process(int frameIndex, WebSocketDataFrame frame);
+        public abstract ProcessFrame Process(int index, WebSocketDataFrame frame);
 
         public static IFrameReader Root => Header;
 
         protected static IFrameReader Header { get; }
 
-        protected static IFrameReader Extension { get; }
+        protected static IFrameReader ExtendedPayload { get; }
 
         protected static IFrameReader MaskKey { get; }
 
