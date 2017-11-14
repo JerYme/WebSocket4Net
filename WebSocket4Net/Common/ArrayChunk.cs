@@ -77,6 +77,11 @@ namespace WebSocket4Net.Common
         public int EndIndex => StartIndex + Length - 1;
 
         /// <summary>
+        /// 
+        /// </summary>
+        public int Index;
+
+        /// <summary>
         /// Moves the specified shift index.
         /// </summary>
         /// <param name="shiftIndex">Index of the shift.</param>

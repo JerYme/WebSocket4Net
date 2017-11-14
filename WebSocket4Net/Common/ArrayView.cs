@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using SuperSocket.ClientEngine;
 
 namespace WebSocket4Net.Common
@@ -8,9 +9,7 @@ namespace WebSocket4Net.Common
     {
         private readonly List<ArrayChunk<T>> _chunks;
 
-        internal IList<ArrayChunk<T>> Chunks => _chunks;
-
-        private ArrayChunk<T> _memChunk;
+        private ArrayChunk<T> _quickSearchChunk;
 
         private int _length;
 
@@ -31,20 +30,28 @@ namespace WebSocket4Net.Common
             }
         }
 
+        public IEnumerable<ArrayChunk<T>> Range(int start) => Range(start, _chunks.Count - start);
+        public IEnumerable<ArrayChunk<T>> Range(int start, int count) => Enumerable.Range(start, count).Where(i => i > -1 && i < _chunks.Count).Select(i =>
+        {
+            var arrayChunk = _chunks[i];
+            arrayChunk.Index = i;
+            return arrayChunk;
+        });
+
         private int GetInternalIndex(int index, out ArrayChunk<T> chunk)
         {
-            if (_memChunk != null)
+            if (_quickSearchChunk != null)
             {
-                if (index >= _memChunk.StartIndex && index <= _memChunk.EndIndex)
+                if (index >= _quickSearchChunk.StartIndex && index <= _quickSearchChunk.EndIndex)
                 {
-                    chunk = _memChunk;
+                    chunk = _quickSearchChunk;
                     return index + chunk.Offset - chunk.StartIndex;
                 }
             }
 
             chunk = BinarySearchInternal(index);
             if (chunk == null) return -1;
-            _memChunk = chunk;
+            _quickSearchChunk = chunk;
 
             return index + chunk.Offset - chunk.StartIndex;
         }
@@ -114,7 +121,7 @@ namespace WebSocket4Net.Common
 
             _chunks.RemoveAt(index);
 
-            _memChunk = null;
+            _quickSearchChunk = null;
 
             //the removed item is not the the last item 
             if (index != _chunks.Count)
@@ -155,7 +162,7 @@ namespace WebSocket4Net.Common
         public void Clear()
         {
             _chunks.Clear();
-            _memChunk = null;
+            _quickSearchChunk = null;
             _length = 0;
         }
 

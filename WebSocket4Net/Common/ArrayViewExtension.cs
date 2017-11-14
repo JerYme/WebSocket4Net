@@ -14,8 +14,7 @@ namespace WebSocket4Net.Common
         {
             if (length == 0) return string.Empty;
 
-            var arraySegments = arrayView.Chunks;
-            if (arraySegments == null || arraySegments.Count <= 0) return string.Empty;
+            if (arrayView.Length == 0) return string.Empty;
 
             var sb = new StringBuilder(encoding.GetMaxCharCount(arrayView.Length));
             var size = Decode(arrayView, encoding, offset, length, sb);
@@ -25,8 +24,7 @@ namespace WebSocket4Net.Common
         public static int Decode(this ArrayView<byte> arrayView, Encoding encoding, int offset, int length, StringBuilder sb)
         {
             if (length == 0) return 0;
-            var arraySegments = arrayView.Chunks;
-            if (arraySegments == null || arraySegments.Count <= 0) return 0;
+            if (arrayView.Length == 0) return 0;
             var charsBuffer = new char[encoding.GetMaxCharCount(arrayView.MaxChunkLength)];
             return Decode(arrayView, encoding, offset, length, sb, charsBuffer);
         }
@@ -34,8 +32,7 @@ namespace WebSocket4Net.Common
         public static int Decode(this ArrayView<byte> arrayView, Encoding encoding, int offset, int length, StringBuilderShared sbt)
         {
             if (length == 0) return 0;
-            var arraySegments = arrayView.Chunks;
-            if (arraySegments == null || arraySegments.Count <= 0) return 0;
+            if (arrayView.Length == 0) return 0;
             var charsBuffer = sbt.Buffer ?? new char[encoding.GetMaxCharCount(arrayView.MaxChunkLength)];
             return Decode(arrayView, encoding, offset, length, sbt.StringBuilder, charsBuffer);
         }
@@ -43,13 +40,11 @@ namespace WebSocket4Net.Common
         public static int Decode(this ArrayView<byte> arrayView, Encoding encoding, int offset, int length, StringBuilder sb, char[] charsBuffer)
         {
             if (length == 0) return 0;
-            var chunks = arrayView.Chunks;
-            if (chunks == null || chunks.Count <= 0) return 0;
+            if (arrayView.Length == 0) return 0;
 
             int totalBytes = 0;
             int totalChars = 0;
 
-            int lastSegIndex = chunks.Count - 1;
             int startChunkIndex = 0;
 
             if (offset > 0)
@@ -58,14 +53,12 @@ namespace WebSocket4Net.Common
             }
 
             var decoder = encoding.GetDecoder();
-            for (var i = startChunkIndex; i <= lastSegIndex; i++)
+            foreach (var chunk in arrayView.Range(startChunkIndex))
             {
-                var chunk = chunks[i];
-
                 int decodeOffset = chunk.Offset;
                 int byteLengthToDecode = Math.Min(length - totalBytes, chunk.Length);
 
-                if (i == startChunkIndex && offset > 0)
+                if (chunk.Index == startChunkIndex && offset > 0)
                 {
                     decodeOffset = offset - chunk.StartIndex + chunk.Offset;
                     byteLengthToDecode = Math.Min(chunk.Length - offset + chunk.StartIndex, byteLengthToDecode);
@@ -75,13 +68,12 @@ namespace WebSocket4Net.Common
                 int bytesUsed;
                 int charsUsed;
                 bool completed;
-                decoder.Convert(chunk.Array, decodeOffset, byteLengthToDecode, charsBuffer, 0, charsBuffer.Length, i == lastSegIndex, out bytesUsed, out charsUsed, out completed);
+                decoder.Convert(chunk.Array, decodeOffset, byteLengthToDecode, charsBuffer, 0, charsBuffer.Length, chunk.Index == arrayView.ChunkCount - 1, out bytesUsed, out charsUsed, out completed);
                 sb.Append(charsBuffer, 0, charsUsed);
                 totalChars += charsUsed;
                 totalBytes += bytesUsed;
 
-                if (totalBytes >= length)
-                    break;
+                if (totalBytes >= length) break;
             }
             return totalChars;
         }
@@ -103,7 +95,6 @@ namespace WebSocket4Net.Common
         public static void DecodeMask(this ArrayView<byte> arrayView, byte[] mask, int offset, int length)
         {
             var maskLen = mask.Length;
-            var segments = arrayView.Chunks;
             int startSegmentIndex;
             var startSegment = arrayView.BinarySearchInternal(offset, out startSegmentIndex);
 
@@ -117,13 +108,10 @@ namespace WebSocket4Net.Common
                 startSegment.Array[i] = (byte)(startSegment.Array[i] ^ mask[index++ % maskLen]);
             }
 
-            if (index >= length)
-                return;
+            if (index >= length) return;
 
-            for (var i = startSegmentIndex + 1; i < arrayView.ChunkCount; i++)
+            foreach (var segment in arrayView.Range(startSegmentIndex + 1))
             {
-                var segment = segments[i];
-
                 shouldDecode = Math.Min(length - index, segment.Length);
 
                 for (var j = segment.Offset; j < segment.Offset + shouldDecode; j++)
