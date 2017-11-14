@@ -27,65 +27,34 @@ namespace WebSocket4Net.Protocol
         {
         }
 
-        public virtual new ArrayChunk<byte> AddChunk(byte[] readBuffer, int offset, int length, bool copy) => base.AddChunk(readBuffer, offset, length, true);
-        public virtual new ArrayChunk<byte> AddChunk(ArrayChunk<byte> segment) => base.AddChunk(segment);
 
-        public abstract bool Process(out int lengthToProcess);
-        public abstract WebSocketFrame BuildWebSocketFrame();
-        public abstract void ResetDataFrame();
+        protected bool? _skipData;
 
-        private bool? _skipData;
-
-        public virtual ProcessWebSocketFrame TryBuildWebSocketFrame(ArrayHolder<byte> ah, int offset, int length)
-        {
-            var arrayChunk = AddChunk(ArrayChunk<byte>.New(_skipData == true ? null : ah, offset, length, ArrayView.Length));
-            if (arrayChunk != null && _skipData == null && ArrayView.Length >= 2)
-            {
-                var actualPayloadLength = new WebSocketDataFrame(ArrayView).ActualPayloadLength;
-                if (actualPayloadLength > 1024 * 1024 * 25)
-                {
-                    _skipData = true;
-                }
-            }
-
-            int lengthToProcess;
-            var processed = Process(out lengthToProcess);
-            if (processed)
-            {
-                var webSocketFrame = BuildWebSocketFrame();
-                if (_skipData != true) webSocketFrame?.Decode(lengthToProcess);
-                ResetDataFrame();
-
-                _skipData = null;
-                return ProcessWebSocketFrame.Pass(webSocketFrame, lengthToProcess);
-            }
-            return ProcessWebSocketFrame.Fail(lengthToProcess);
-        }
+        public abstract WebSocketFrameProcessed TryBuildWebSocketFrame(ArrayHolder<byte> ah, int offset, int length);
 
         public virtual void Clear()
         {
-
         }
 
-        public struct ProcessWebSocketFrame
+        public struct WebSocketFrameProcessed
         {
             private readonly bool _success;
             public readonly int LengthToProcess;
             public readonly WebSocketFrame Frame;
 
-            public static ProcessWebSocketFrame Pass(WebSocketFrame reader = null, int lengthToProcess = 0) => new ProcessWebSocketFrame(true, reader, lengthToProcess);
-            public static ProcessWebSocketFrame Fail(int lengthToProcess = 0) => new ProcessWebSocketFrame(false, null, lengthToProcess);
+            public static WebSocketFrameProcessed Pass(WebSocketFrame reader = null, int lengthToProcess = 0) => new WebSocketFrameProcessed(true, reader, lengthToProcess);
+            public static WebSocketFrameProcessed Fail(int lengthToProcess = 0) => new WebSocketFrameProcessed(false, null, lengthToProcess);
 
-            public ProcessWebSocketFrame(bool success, WebSocketFrame reader, int lengthToProcess)
+            public WebSocketFrameProcessed(bool success, WebSocketFrame reader, int lengthToProcess)
             {
                 _success = success;
                 Frame = reader;
                 LengthToProcess = lengthToProcess;
             }
 
-            public static implicit operator bool(ProcessWebSocketFrame frame) => frame._success;
-            public static implicit operator int(ProcessWebSocketFrame frame) => frame.LengthToProcess;
-            public static implicit operator WebSocketFrame(ProcessWebSocketFrame frame) => frame.Frame;
+            public static implicit operator bool(WebSocketFrameProcessed frameProcessed) => frameProcessed._success;
+            public static implicit operator int(WebSocketFrameProcessed frameProcessed) => frameProcessed.LengthToProcess;
+            public static implicit operator WebSocketFrame(WebSocketFrameProcessed frameProcessed) => frameProcessed.Frame;
         }
 
     }
@@ -118,15 +87,17 @@ namespace WebSocket4Net.Protocol
         /// </summary>
         public virtual ArrayView<byte> ArrayView { get; }
 
+
         /// <summary>
-        /// Adds the segment.
+        /// Adds the chunk.
         /// </summary>
-        /// <param name="readBuffer">The read buffer.</param>
+        /// <param name="array">The array.</param>
         /// <param name="offset">The offset.</param>
         /// <param name="length">The length.</param>
         /// <param name="copy">if set to <c>true</c> [copy].</param>
         /// <returns></returns>
-        protected ArrayChunk<byte> AddChunk(byte[] readBuffer, int offset, int length, bool copy) => ArrayView.AddChunk(readBuffer, offset, length, copy);
+        protected ArrayChunk<byte> AddChunk(byte[] array, int offset, int length, bool copy) => ArrayView.AddChunk(array, offset, length, copy);
+
         /// <summary>
         /// Adds the segment.
         /// </summary>
@@ -137,6 +108,6 @@ namespace WebSocket4Net.Protocol
         /// <summary>
         /// Clears the segments.
         /// </summary>
-        protected void ClearSegments() => ArrayView.Clear();
+        protected void ClearBuffers() => ArrayView.Clear();
     }
 }

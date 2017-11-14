@@ -2,30 +2,30 @@
 {
     public interface IFrameReader
     {
-        ProcessFrame Process(int frameIndex, WebSocketDataFrame frame);
+        ProcessFrame Process(int index, WebSocketDataFrame frame);
     }
 
 
     public struct ProcessFrame
     {
         private readonly bool _success;
-        public readonly int FrameIndex;
+        public readonly int Index;
         public readonly int LengthToProcess;
         public readonly IFrameReader Reader;
 
-        public static ProcessFrame Pass(int frameIndex, IFrameReader reader = null, int lengthToProcess = 0) => new ProcessFrame(true, frameIndex, reader, lengthToProcess);
-        public static ProcessFrame Fail(int frameIndex, IFrameReader reader = null, int lengthToProcess = 0) => new ProcessFrame(false, frameIndex, reader, lengthToProcess);
+        public static ProcessFrame Pass(int index, IFrameReader reader = null, int lengthToProcess = 0) => new ProcessFrame(true, index, reader, lengthToProcess);
+        public static ProcessFrame Fail(int index, IFrameReader reader = null, int lengthToProcess = 0) => new ProcessFrame(false, index, reader, lengthToProcess);
 
-        public ProcessFrame(bool success, int frameIndex, IFrameReader reader, int lengthToProcess)
+        public ProcessFrame(bool success, int index, IFrameReader reader, int lengthToProcess)
         {
             _success = success;
-            FrameIndex = frameIndex;
+            Index = index;
             Reader = reader;
             LengthToProcess = lengthToProcess;
         }
 
         public static implicit operator bool(ProcessFrame frame) => frame._success;
-        public static implicit operator int(ProcessFrame frame) => frame.FrameIndex;
+        public static implicit operator int(ProcessFrame frame) => frame.Index;
     }
 
 }

@@ -2,9 +2,9 @@
 namespace WebSocket4Net.Protocol.FrameReader
 {
 
-    class ExtensionFrameReader : FrameReader
+    class ExtendedPayloadFrameReader : FrameReader
     {
-        public override ProcessFrame Process(int frameIndex, WebSocketDataFrame frame)
+        public override ProcessFrame Process(int index, WebSocketDataFrame frame)
         {
             int endExtension = 2;
 
@@ -15,7 +15,7 @@ namespace WebSocket4Net.Protocol.FrameReader
 
             if (frame.ArrayLength < endExtension)
             {
-                return ProcessFrame.Fail(frameIndex, this, frame.ArrayLength - frameIndex);
+                return ProcessFrame.Fail(index, this, frame.ArrayLength - index);
             }
 
             IFrameReader nextFrameReader;
@@ -27,7 +27,7 @@ namespace WebSocket4Net.Protocol.FrameReader
             {
                 if (frame.ActualPayloadLength == 0)
                 {
-                    return ProcessFrame.Pass(frameIndex, null, frame.ArrayLength - endExtension);
+                    return ProcessFrame.Pass(index, null, frame.ArrayLength - endExtension);
                 }
 
                 nextFrameReader = Payload;
@@ -36,7 +36,7 @@ namespace WebSocket4Net.Protocol.FrameReader
             if (frame.ArrayLength > endExtension)
                 return nextFrameReader.Process(endExtension, frame);
 
-            return ProcessFrame.Pass(frameIndex);
+            return ProcessFrame.Pass(index);
         }
     }
 }

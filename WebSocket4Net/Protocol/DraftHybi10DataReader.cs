@@ -13,17 +13,14 @@ namespace WebSocket4Net.Protocol
             _frameReader = FrameReader.FrameReader.Root;
         }
 
-
         private List<WebSocketDataFrame> _fragmentedDataFrames;
         private WebSocketDataFrame _dataFrame;
         private IFrameReader _frameReader;
         private int _frameIndex;
 
-        public int SegmentsLength => _dataFrame.ArrayView.Length;
-
         public override ArrayView<byte> ArrayView => _dataFrame.ArrayView;
 
-        public override bool Process(out int lengthToProcess)
+        private bool Process(out int lengthToProcess)
         {
             var processFrame = _frameReader.Process(_frameIndex, _dataFrame);
 
@@ -33,31 +30,47 @@ namespace WebSocket4Net.Protocol
             if (reader != null)
             {
                 _frameReader = reader;
-                _frameIndex = processFrame.FrameIndex;
-            }
-
-            if (!processFrame && reader == null)
-            {
-
+                _frameIndex = processFrame.Index;
             }
 
             return processFrame;
-            //if (nextFrameReader == null) return success;
-
-            //_frameIndex = _dataFrame.Segments.SegmentsLength - lengthToProcess;
-            //if (!success && lengthToProcess > 0) _dataFrame.Segments.TrimEnd(lengthToProcess);
-            //return success;
-            //if (lengthToProcess > 0) _dataFrame.Segments.TrimEnd(lengthToProcess);
         }
 
-        public override void ResetDataFrame()
+        private void ResetDataFrame()
         {
             _dataFrame = new WebSocketDataFrame(new ArrayView<byte>());
             _frameIndex = 0;
             _frameReader = FrameReader.FrameReader.Root;
         }
 
-        public override WebSocketFrame BuildWebSocketFrame()
+        public override WebSocketFrameProcessed TryBuildWebSocketFrame(ArrayHolder<byte> ah, int offset, int length)
+        {
+            var arrayChunk = AddChunk(ArrayChunk<byte>.New(_skipData == true ? null : ah, offset, length, ArrayView.Length));
+            if (arrayChunk != null && _skipData == null && ArrayView.ChunkCount == 1)
+            {
+                var actualPayloadLength = new WebSocketDataFrame(ArrayView).ActualPayloadLengthNullable;
+                if (actualPayloadLength > 1024 * 1024 * 25)
+                {
+                    _skipData = true;
+                }
+            }
+
+            int lengthToProcess;
+            var processed = Process(out lengthToProcess);
+            if (processed)
+            {
+                var webSocketFrame = BuildWebSocketFrame();
+                if (_skipData != true) webSocketFrame?.Decode();
+                ResetDataFrame();
+
+                _skipData = null;
+                return WebSocketFrameProcessed.Pass(webSocketFrame, lengthToProcess);
+            }
+            return WebSocketFrameProcessed.Fail(lengthToProcess);
+        }
+
+
+        private WebSocketFrame BuildWebSocketFrame()
         {
             // Control frames MAY be injected in the middle of
             // a fragmented message.Control frames themselves MUST NOT be

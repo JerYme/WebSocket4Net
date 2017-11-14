@@ -274,8 +274,7 @@ namespace WebSocket4Net.Common
 
             copied += thisCopied;
 
-            if (copied >= length)
-                return copied;
+            if (copied >= length) return copied;
 
             for (var i = offsetSegmentIndex + 1; i < _chunks.Count; i++)
             {
@@ -284,8 +283,7 @@ namespace WebSocket4Net.Common
                 Array.Copy(segment.Array, segment.Offset, to, copied + toIndex, thisCopied);
                 copied += thisCopied;
 
-                if (copied >= length)
-                    break;
+                if (copied >= length) break;
             }
 
             return copied;
