@@ -64,7 +64,7 @@ namespace Tests
         }
 
         [Fact]
-        public void TestConnection() 
+        public async Task TestConnection() 
         {
             using (var server = StartWebSocketServer(async context =>
             {
@@ -75,9 +75,11 @@ namespace Tests
             }))
             {
                 using (var client = new WebSocket4Net.WebSocket("ws://localhost:54321/"))
-                {
-                    
-                    //await client.ConnectAsync(new Uri(ClientAddress), CancellationToken.None);
+                {        
+                    await client.OpenAsync();
+                    Assert.Equal(WebSocket4Net.WebSocketState.Open, client.State);
+                    await client.CloseAsync();
+                    Assert.Equal(WebSocket4Net.WebSocketState.Closed, client.State);
                 }
             }
         }

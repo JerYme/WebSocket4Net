@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
   <metadata>
     <id>WebSocket4Net</id>
-    <version>0.15-beta9</version>
+    <version>0.15</version>
 	<!--<version>$version</version>-->
     <authors>Kerry Jiang</authors>
     <owners>Kerry Jiang</owners>
@@ -13,10 +13,10 @@
     <tags>WebSocket, WebSocket4Net, SuperWebSocket</tags>
 	<dependencies>
 	  <group>
-		<dependency id="SuperSocket.ClientEngine.Core" version="0.8.0.12" />
+		<dependency id="SuperSocket.ClientEngine.Core" version="0.8.0.14" />
 	  </group>
 	  <group targetFramework=".NETStandard1.3">
-		<dependency id="SuperSocket.ClientEngine.Core" version="0.8.0.12" />
+		<dependency id="SuperSocket.ClientEngine.Core" version="0.8.0.14" />
 		<dependency id="System.Linq" version="[4.3.0, )" />
 		<dependency id="System.Net.Sockets" version="[4.3.0, )" />
 		<dependency id="System.Net.NameResolution" version="[4.3.0, )" />
@@ -30,16 +30,11 @@
 	</references>
   </metadata>
   <files>
-    <file src="bin\net20\release\WebSocket4Net.dll" target="lib/net20" />
-	<file src="bin\net35\release\WebSocket4Net.dll" target="lib/net35" />
-	<file src="bin\net40\release\WebSocket4Net.dll" target="lib/net40" />
-	<file src="bin\net45\release\WebSocket4Net.dll" target="lib/net45" />
-	<file src="bin\sl50\release\WebSocket4Net.dll" target="lib/sl50" />
-	<file src="bin\wp80\release\WebSocket4Net.dll" target="lib/wp80" />
-	<!--<file src="bin\win\release\WebSocket4Net.dll" target="lib/win" />-->
-	<file src="bin\monoandroid10\release\WebSocket4Net.dll" target="lib/monoandroid10" />
-	<file src="bin\monotouch10\release\WebSocket4Net.dll" target="lib/monotouch10" />
-	<file src="bin\xamarinios10\release\WebSocket4Net.dll" target="lib/xamarinios10" />
-	<file src="bin\netstandard1.3\release\WebSocket4Net.dll" target="lib/netstandard1.3" />
+    <file src="bin\net20\release\WebSocket4Net.dll" target="lib\net20" />
+		<file src="bin\net35\release\WebSocket4Net.dll" target="lib\net35" />
+		<file src="bin\net40\release\WebSocket4Net.dll" target="lib\net40" />
+		<file src="bin\net45\release\WebSocket4Net.dll" target="lib\net45" />
+		<file src="bin\sl50\release\WebSocket4Net.dll" target="lib\sl50" />
+		<file src="bin\netstandard1.3\release\WebSocket4Net.dll" target="lib\netstandard1.3" />
   </files>
 </package>
