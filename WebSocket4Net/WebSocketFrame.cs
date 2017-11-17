@@ -123,4 +123,25 @@ namespace WebSocket4Net
     }
 
 
+    public struct WebSocketFrameProcessed
+    {
+        private readonly bool _success;
+        public readonly int LengthToProcess;
+        public readonly WebSocketFrame Frame;
+
+        public static WebSocketFrameProcessed Pass(WebSocketFrame frame = null, int lengthToProcess = 0) => new WebSocketFrameProcessed(true, frame, lengthToProcess);
+        public static WebSocketFrameProcessed Fail(int lengthToProcess = 0) => new WebSocketFrameProcessed(false, null, lengthToProcess);
+
+        private WebSocketFrameProcessed(bool success, WebSocketFrame frame, int lengthToProcess)
+        {
+            _success = success;
+            Frame = frame;
+            LengthToProcess = lengthToProcess;
+        }
+
+        public static implicit operator bool(WebSocketFrameProcessed frameProcessed) => frameProcessed._success;
+        public static implicit operator int(WebSocketFrameProcessed frameProcessed) => frameProcessed.LengthToProcess;
+        public static implicit operator WebSocketFrame(WebSocketFrameProcessed frameProcessed) => frameProcessed.Frame;
+    }
+
 }

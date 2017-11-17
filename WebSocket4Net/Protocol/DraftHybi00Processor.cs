@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using SuperSocket.ClientEngine;
+using WebSocket4Net.Common;
 
 namespace WebSocket4Net.Protocol
 {
@@ -42,17 +43,18 @@ namespace WebSocket4Net.Protocol
             }
         }
 
-        public override HandshakeReaderBase CreateHandshakeReader(WebSocket websocket) => new DraftHybi00HandshakeReader(websocket);
-        public override DataReaderBase CreateDataReader(WebSocket websocket, HandshakeReaderBase handshakeReaderBase) => new DraftHybi00DataReader(websocket, handshakeReaderBase.ArrayView);
+        public override ReaderBase CreateHandshakeReader(WebSocket websocket) => new DraftHybi00HandshakeReader(websocket);
+        public override ReaderBase CreateDataReader(WebSocket websocket, ReaderBase handshakeReaderBase) => new DraftHybi00DataReader(websocket, handshakeReaderBase.ArrayView);
 
         private const string m_Error_ChallengeLengthNotMatch = "challenge length doesn't match";
         private const string m_Error_ChallengeNotMatch = "challenge doesn't match";
         private const string m_Error_InvalidHandshake = "invalid handshake";
 
 
-        public override bool VerifyHandshake(WebSocket websocket, WebSocketFrame handshakeInfo, out string description)
+        public override bool VerifyHandshake(WebSocket websocket, IWebSocketFrame handshakeInfo, out string description)
         {
-            var challenge = handshakeInfo.Data;
+            var f = (WebSocketFrame) handshakeInfo;
+            var challenge = f.Data;
 
             if (challenge.Length != challenge.Length)
             {
@@ -71,7 +73,7 @@ namespace WebSocket4Net.Protocol
 
             var verbLine = string.Empty;
 
-            if (!handshakeInfo.Text.ParseMimeHeader(websocket.Items, out verbLine))
+            if (!f.Text.ParseMimeHeader(websocket.Items, out verbLine))
             {
                 description = m_Error_InvalidHandshake;
                 return false;

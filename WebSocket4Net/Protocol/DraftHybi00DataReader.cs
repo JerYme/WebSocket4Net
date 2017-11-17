@@ -3,7 +3,7 @@ using WebSocket4Net.Common;
 
 namespace WebSocket4Net.Protocol
 {
-    class DraftHybi00DataReader : DataReaderBase
+    class DraftHybi00DataReader : ReaderBase
     {
         private byte? _type;
         private int _tempLength;
@@ -20,10 +20,10 @@ namespace WebSocket4Net.Protocol
         }
 
 
-        public override WebSocketFrameProcessed TryBuildWebSocketFrame(ArrayHolder<byte> ah, int offset, int length)
+        public override WebSocketFrameProcessed ProcessWebSocketFrame(ArrayHolder<byte> ah, int offset, int length)
         {
             var webSocketFrameEx = BuildWebSocketFrameEx(ah.Array, offset, length);
-            return new WebSocketFrameProcessed(webSocketFrameEx.Frame != null,null, webSocketFrameEx.Left);
+            return webSocketFrameEx.Frame != null ? WebSocketFrameProcessed.Pass(webSocketFrameEx.Frame, webSocketFrameEx.Left) : WebSocketFrameProcessed.Fail(webSocketFrameEx.Left);
         }
 
         WebSocketFrameEx BuildWebSocketFrameEx(byte[] readBuffer, int offset, int length)

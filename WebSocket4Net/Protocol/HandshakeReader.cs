@@ -5,7 +5,7 @@ using WebSocket4Net.Common;
 
 namespace WebSocket4Net.Protocol
 {
-    class HandshakeReader : HandshakeReaderBase
+    class HandshakeReader : ReaderBase
     {
         private const string _badRequestPrefix = "HTTP/1.1 400 ";
 
@@ -26,9 +26,10 @@ namespace WebSocket4Net.Protocol
 
         protected static readonly byte[] HeaderTerminator = Encoding.UTF8.GetBytes("\r\n\r\n");
 
-        public override WebSocketFrame BuildHandShakeFrame(byte[] readBuffer, int offset, int length, out int lengthToProcess, out bool success)
+        public override WebSocketFrameProcessed ProcessWebSocketFrame(ArrayHolder<byte> ah, int offset, int length)
         {
-            lengthToProcess = 0;
+            var lengthToProcess = 0;
+            var readBuffer = ah.Array;
 
             // prevMatched is needed because handshake may have come
             // in a number of segments, and the HeaderTerminator that
@@ -57,8 +58,7 @@ namespace WebSocket4Net.Protocol
                 // called again when more data arrives.  --
                 // fidergo-stephane-gourichon
                 AddChunk(readBuffer, offset, length, true);
-                success = false;
-                return null;
+                return WebSocketFrameProcessed.Fail(lengthToProcess);
             }
 
             // We've found the HeaderTerminator.  All might be in
@@ -155,20 +155,14 @@ namespace WebSocket4Net.Protocol
 
             _headSeachState.Matched = 0;
 
-            success = true;
-            if (!handshake.StartsWith(_badRequestPrefix, StringComparison.OrdinalIgnoreCase))
+            var opCode = !handshake.StartsWith(_badRequestPrefix, StringComparison.OrdinalIgnoreCase) ? OpCode.Handshake : OpCode.BadRequest;
+            var frame = new WebSocketFrame
             {
-                return new WebSocketFrame
-                {
-                    Key = OpCode.Handshake.ToString(),
-                    Text = handshake
-                };
-            }
-            return new WebSocketFrame
-            {
-                Key = OpCode.BadRequest.ToString(),
+                Key = opCode.ToString(),
                 Text = handshake
             };
+            return WebSocketFrameProcessed.Pass(frame, lengthToProcess);
         }
+
     }
 }

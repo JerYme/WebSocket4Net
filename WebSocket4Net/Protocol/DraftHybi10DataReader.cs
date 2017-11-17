@@ -5,7 +5,7 @@ using WebSocket4Net.Protocol.FrameReader;
 
 namespace WebSocket4Net.Protocol
 {
-    sealed class DraftHybi10DataReader : DataReaderBase
+    sealed class DraftHybi10DataReader : ReaderBase
     {
         public DraftHybi10DataReader(WebSocket websocket, ArrayView<byte> arrayView) : base(websocket, arrayView)
         {
@@ -43,7 +43,9 @@ namespace WebSocket4Net.Protocol
             _frameReader = FrameReader.FrameReader.Root;
         }
 
-        public override WebSocketFrameProcessed TryBuildWebSocketFrame(ArrayHolder<byte> ah, int offset, int length)
+        private bool? _skipData;
+
+        public override WebSocketFrameProcessed ProcessWebSocketFrame(ArrayHolder<byte> ah, int offset, int length)
         {
             var arrayChunk = AddChunk(ArrayChunk<byte>.New(_skipData == true ? null : ah, offset, length, ArrayView.Length));
             if (arrayChunk != null && _skipData == null && ArrayView.ChunkCount == 1)
@@ -104,12 +106,12 @@ namespace WebSocket4Net.Protocol
             return new WebSocketFrame(_dataFrame);
         }
 
-        public override void Clear()
-        {
-            _dataFrame = new WebSocketDataFrame(new ArrayView<byte>());
-            _frameIndex = 0;
-            _frameReader = FrameReader.FrameReader.Root;
-        }
+        //public override void Clear()
+        //{
+        //    _dataFrame = new WebSocketDataFrame(new ArrayView<byte>());
+        //    _frameIndex = 0;
+        //    _frameReader = FrameReader.FrameReader.Root;
+        //}
 
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using WebSocket4Net.Common;
 
 
 namespace WebSocket4Net.Protocol
@@ -8,10 +9,10 @@ namespace WebSocket4Net.Protocol
     {
         void SendHandshake(WebSocket websocket);
 
-        bool VerifyHandshake(WebSocket websocket, WebSocketFrame handshakeInfo, out string description);
+        bool VerifyHandshake(WebSocket websocket, IWebSocketFrame handshakeInfo, out string description);
 
-        HandshakeReaderBase CreateHandshakeReader(WebSocket websocket);
-        DataReaderBase CreateDataReader(WebSocket websocket, HandshakeReaderBase handshakeReaderBase);
+        ReaderBase CreateHandshakeReader(WebSocket websocket);
+        ReaderBase CreateDataReader(WebSocket websocket, ReaderBase handshakeReaderBase);
 
         void SendMessage(WebSocket websocket, string message);
 

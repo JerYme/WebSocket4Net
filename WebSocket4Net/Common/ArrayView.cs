@@ -43,17 +43,15 @@ namespace WebSocket4Net.Common
 
         private int GetInternalIndex(int index, out ArrayChunk<T> chunk)
         {
-            if (_quickSearchChunk != null)
+            if (index >= _quickSearchChunk?.StartIndex && index <= _quickSearchChunk.EndIndex)
             {
-                if (index >= _quickSearchChunk.StartIndex && index <= _quickSearchChunk.EndIndex)
-                {
-                    chunk = _quickSearchChunk;
-                    return index + chunk.Offset - chunk.StartIndex;
-                }
+                chunk = _quickSearchChunk;
             }
-
-            chunk = BinarySearchInternal(index);
-            if (chunk == null) return -1;
+            else
+            {
+                chunk = BinarySearchInternal(index);
+                if (chunk == null) return -1;
+            }
             _quickSearchChunk = chunk;
 
             return index + chunk.Offset - chunk.StartIndex;
@@ -64,7 +62,7 @@ namespace WebSocket4Net.Common
             if (index < 0 || index >= Length) return null;
 
             var i = _chunks.BinarySearch(new ArrayChunk<T>(index));
-            if (i > 0) return _chunks[i];
+            if (i >= 0) return _chunks[i];
             i = ~i;
             var chunk = i == _chunks.Count
                 ? _chunks[_chunks.Count - 1]

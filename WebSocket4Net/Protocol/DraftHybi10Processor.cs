@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using SuperSocket.ClientEngine;
+using WebSocket4Net.Common;
 
 
 namespace WebSocket4Net.Protocol
@@ -111,9 +112,9 @@ namespace WebSocket4Net.Protocol
             websocket.Client.Send(handshakeBuffer, 0, handshakeBuffer.Length);
         }
 
-        public override HandshakeReaderBase CreateHandshakeReader(WebSocket websocket) => new DraftHybi10HandshakeReader(websocket);
+        public override ReaderBase CreateHandshakeReader(WebSocket websocket) => new DraftHybi10HandshakeReader(websocket);
 
-        public override DataReaderBase CreateDataReader(WebSocket websocket, HandshakeReaderBase handshakeReaderBase) => new DraftHybi10DataReader(websocket, handshakeReaderBase?.ArrayView);
+        public override ReaderBase CreateDataReader(WebSocket websocket, ReaderBase handshakeReaderBase) => new DraftHybi10DataReader(websocket, handshakeReaderBase?.ArrayView);
 
         private void SendMessage(WebSocket websocket, int opCode, string message)
         {
@@ -251,9 +252,10 @@ namespace WebSocket4Net.Protocol
         private const string m_Error_SubProtocolNotMatch = "subprotocol doesn't match";
         private const string m_Error_AcceptKeyNotMatch = "accept key doesn't match";
 
-        public override bool VerifyHandshake(WebSocket websocket, WebSocketFrame handshakeInfo, out string description)
+        public override bool VerifyHandshake(WebSocket websocket, IWebSocketFrame handshakeInfo, out string description)
         {
-            var handshake = handshakeInfo.Text;
+            var f = (WebSocketFrame) handshakeInfo;
+            var handshake = f.Text;
 
             if (string.IsNullOrEmpty(handshake))
             {
@@ -263,7 +265,7 @@ namespace WebSocket4Net.Protocol
 
             var verbLine = string.Empty;
 
-            if (!handshakeInfo.Text.ParseMimeHeader(websocket.Items, out verbLine))
+            if (!f.Text.ParseMimeHeader(websocket.Items, out verbLine))
             {
                 description = m_Error_InvalidHandshake;
                 return false;
